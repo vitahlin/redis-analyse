@@ -61,7 +61,11 @@ struct __attribute__ ((__packed__)) sdshdr8 {
     // 一个字节，最低3位表示header类型
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
 
-    // 
+    // 这是一个没有指明长度的字符数组，这是C语言中定义字符数组的一种特殊写法，称为柔性数组（flexible array member），
+    // 只能定义在一个结构体的最后一个字段上。它在这里只是起到一个标记的作用，表示在flags字段后面就是一个字符数组，
+    // 或者说，它指明了紧跟在flags字段后面的这个字符数组在结构体中的偏移位置。
+    // 而程序在为header分配的内存的时候，它并不占用内存空间。
+    // 如果计算sizeof(struct sdshdr16)的值，那么结果是5个字节，其中没有buf字段。
     char buf[];
 };
 struct __attribute__ ((__packed__)) sdshdr16 {
