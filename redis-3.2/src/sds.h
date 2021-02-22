@@ -143,6 +143,7 @@ static inline size_t sdsavail(const sds s) {
     return 0;
 }
 
+// 设置sds字符串长度
 static inline void sdssetlen(sds s, size_t newlen) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
@@ -167,6 +168,7 @@ static inline void sdssetlen(sds s, size_t newlen) {
     }
 }
 
+// 增加sds字符串长度
 static inline void sdsinclen(sds s, size_t inc) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
@@ -193,6 +195,7 @@ static inline void sdsinclen(sds s, size_t inc) {
 }
 
 /* sdsalloc() = sdsavail() + sdslen() */
+// 获取sds字符串容量
 static inline size_t sdsalloc(const sds s) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
@@ -210,6 +213,7 @@ static inline size_t sdsalloc(const sds s) {
     return 0;
 }
 
+// 设置sds字符串容量
 static inline void sdssetalloc(sds s, size_t newlen) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
