@@ -39,18 +39,29 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+// sds的类型定义，因为sds和传统的C语言字符串保持兼容，因此它们的类型定义是一样的。
 typedef char *sds;
 
 /* Note: sdshdr5 is never used, we just access the flags byte directly.
  * However is here to document the layout of type 5 SDS strings. */
+// sds是二进制安全的，不能像C字符串一样以字符`\0`来标识字符串的结束，因此必然有长度字段。
+// 所以实际上，sds还包含一个header结构，如下.
+// sds一共有5中类型的header，是为了能让不同长度的字符串可以使用不同大小的header
 struct __attribute__ ((__packed__)) sdshdr5 {
     unsigned char flags; /* 3 lsb of type, and 5 msb of string length */
     char buf[];
 };
 struct __attribute__ ((__packed__)) sdshdr8 {
+    // 标识字符串的真正长度
     uint8_t len; /* used */
+
+    // 表示字符串的最大容量
     uint8_t alloc; /* excluding the header and null terminator */
+
+    // 一个字节，最低3位表示header类型
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
+
+    // 
     char buf[];
 };
 struct __attribute__ ((__packed__)) sdshdr16 {
@@ -83,6 +94,7 @@ struct __attribute__ ((__packed__)) sdshdr64 {
 #define SDS_HDR(T,s) ((struct sdshdr##T *)((s)-(sizeof(struct sdshdr##T))))
 #define SDS_TYPE_5_LEN(f) ((f)>>SDS_TYPE_BITS)
 
+// 获取sds字符串长度
 static inline size_t sdslen(const sds s) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
@@ -100,6 +112,7 @@ static inline size_t sdslen(const sds s) {
     return 0;
 }
 
+// 获取sds字符串空余空间，即alloc-len
 static inline size_t sdsavail(const sds s) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
