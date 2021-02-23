@@ -79,7 +79,7 @@ static inline char sdsReqType(size_t string_size) {
  * You can print the string with printf() as there is an implicit \0 at the
  * end of the string. However the string is binary safe and can contain
  * \0 characters in the middle, as the length is stored in the sds header. */
-// sds的创建和销毁
+// 根据长度创建相应类型的sds，并初始化sds（若init不为空）
 sds sdsnewlen(const void *init, size_t initlen) {
     void *sh;
     sds s;
@@ -98,18 +98,28 @@ sds sdsnewlen(const void *init, size_t initlen) {
     // 需要的内存空间一次性进行分配，其中包含三部分：header、数据、最后的多余字节（hdrlen+initlen+1）
     sh = s_malloc(hdrlen+initlen+1);
 
+    // 如果不是初始化的话，将分配的内存全部初始化为0
     if (!init)
         memset(sh, 0, hdrlen+initlen+1);
+
+    // 内存分配失败，返回NULL
     if (sh == NULL) return NULL;
+
+    // 保存实际内容的指针
     s = (char*)sh+hdrlen;
+
+    // flag指针
     fp = ((unsigned char*)s)-1;
+
     switch(type) {
         case SDS_TYPE_5: {
             *fp = type | (initlen << SDS_TYPE_BITS);
             break;
         }
         case SDS_TYPE_8: {
+            // 表示根据s，定义指针sh，并初始化指向实际sds的起始地址
             SDS_HDR_VAR(8,s);
+            
             sh->len = initlen;
             sh->alloc = initlen;
             *fp = type;
@@ -137,6 +147,8 @@ sds sdsnewlen(const void *init, size_t initlen) {
             break;
         }
     }
+
+    // 如果有指定初始化内容，将它们复制到 sdshdr 的 buf 中
     if (initlen && init)
         memcpy(s, init, initlen);
 
