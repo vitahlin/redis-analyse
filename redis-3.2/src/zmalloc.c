@@ -89,13 +89,12 @@ void zlibc_free(void *ptr) {
 
 #endif
 
-// 更新全局变量used_memory（已分配内存的大小）的值
-// 这里do{}while(0)是为了辅助定义复杂的宏，避免引用的时候出错
-
+// 更新全局变量used_memory（已分配内存的大小）的值。
+// 这里do{}while(0)是为了辅助定义复杂的宏，避免引用的时候出错。
 // 64位系统中，size(long)=8，所以第一个if语句等价于if(_n&7) _n += 8 - (_n&7);
-// 这就是判断分配的内存空间的大小是不是8的倍数，就加上相应的偏移量使之变成8的倍数
-// malloc本身能够保证所分配的内存是8字节对齐的，
-// 所以这里的真正目的是使变量user_memory精确的维护实际已经分配的大小
+// 这就是判断分配的内存空间的大小是不是8的倍数，就加上相应的偏移量使之变成8的倍数。
+// malloc本身能够保证所分配的内存是8字节对齐的，所以这里的真正目的是使used_memory精确的维护实际已经分配的大小
+// 这里还分为线程安全和线程不安全模式。
 #define update_zmalloc_stat_alloc(__n) do { \
     size_t _n = (__n); \
     if (_n&(sizeof(long)-1)) _n += sizeof(long)-(_n&(sizeof(long)-1)); \
@@ -121,6 +120,7 @@ static size_t used_memory = 0;
 
 // 线程安全状态
 static int zmalloc_thread_safe = 0;
+// 线程互斥锁，当使用线程安全模式的时候，配置进行加锁解锁
 pthread_mutex_t used_memory_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // oom是out of memory 打印内存不足的错误信息并终止程序
@@ -134,14 +134,15 @@ static void zmalloc_default_oom(size_t size) {
 // (*zmalloc_oom_handler)(size_t)是一个函数指针，指向函数zmalloc_default_oom
 static void (*zmalloc_oom_handler)(size_t) = zmalloc_default_oom;
 
-// 参数size是我们要分配的大小
+// 调用zmalloc申请size个大小的空间
 void *zmalloc(size_t size) {
-    // 实际分配的大小是size+PREFIX_SIZE
+    // 实际分配的大小是size+PREFIX_SIZE，调用的还是malloc函数
     void *ptr = malloc(size+PREFIX_SIZE);
 
     // ptr指针为NULL，即内存分配失败，调用zmalloc_oom_handler(size)
     if (!ptr) zmalloc_oom_handler(size);
 #ifdef HAVE_MALLOC_SIZE
+    // 更新used_memory大小
     update_zmalloc_stat_alloc(zmalloc_size(ptr));
     return ptr;
 #else
