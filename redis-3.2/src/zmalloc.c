@@ -92,7 +92,7 @@ void zlibc_free(void *ptr) {
 // 更新全局变量used_memory（已分配内存的大小）的值。
 // 这里do{}while(0)是为了辅助定义复杂的宏，避免引用的时候出错。
 // 64位系统中，size(long)=8，所以第一个if语句等价于if(_n&7) _n += 8 - (_n&7);
-// 这就是判断分配的内存空间的大小是不是8的倍数，就加上相应的偏移量使之变成8的倍数。
+// 这就是判断分配的内存空间的大小是不是8的倍数，如果不是就加上相应的偏移量使之变成8的倍数。
 // malloc本身能够保证所分配的内存是8字节对齐的，所以这里的真正目的是使used_memory精确的维护实际已经分配的大小
 // 这里还分为线程安全和线程不安全模式。
 #define update_zmalloc_stat_alloc(__n) do { \
@@ -146,6 +146,7 @@ void *zmalloc(size_t size) {
     update_zmalloc_stat_alloc(zmalloc_size(ptr));
     return ptr;
 #else
+    // 在已分配空间的第一个字长（前8个字节）处存储需要分配的实际的字节大小
     *((size_t*)ptr) = size;
     update_zmalloc_stat_alloc(size+PREFIX_SIZE);
     return (char*)ptr+PREFIX_SIZE;
@@ -155,8 +156,9 @@ void *zmalloc(size_t size) {
 // zcalloc()和zmalloc()具有相同的编程接口，实现功能基本相同，
 // 唯一不同之处是zcalloc()会做初始化工作，而zmalloc()不会
 void *zcalloc(size_t size) {
-    // calloc分配的空间大小是1*(size+PREFIX_SIZE)，
-    // 同时会对分配的空间做初始化工作，而malloc不会
+    // calloc()的功能是也是分配内存空间，与malloc()的不同之处有两点：
+    // 它分配的空间大小是 size * nmemb。比如calloc(10,sizoef(char)); 则分配10个字节
+    // calloc()会对分配的空间做初始化工作（初始化为0），而malloc()不会
     void *ptr = calloc(1, size+PREFIX_SIZE);
 
     if (!ptr) zmalloc_oom_handler(size);
@@ -191,14 +193,25 @@ void *zrealloc(void *ptr, size_t size) {
     update_zmalloc_stat_alloc(zmalloc_size(newptr));
     return newptr;
 #else
+    // 拿到存储实际分配空间大小的指针地址
     realptr = (char*)ptr-PREFIX_SIZE;
+
+    // 拿到实际分配空间大小的值
     oldsize = *((size_t*)realptr);
+
+    // 在其他位置新建一个大小为size+PREFIX_SIZE的空间
     newptr = realloc(realptr,size+PREFIX_SIZE);
+
+    // 内存开发失败，打印错误内容并退出
     if (!newptr) zmalloc_oom_handler(size);
 
+    // 首字节用来保存地址
     *((size_t*)newptr) = size;
+
+    // 更新内存使用大小
     update_zmalloc_stat_free(oldsize);
     update_zmalloc_stat_alloc(size);
+
     return (char*)newptr+PREFIX_SIZE;
 #endif
 }
@@ -229,17 +242,27 @@ void zfree(void *ptr) {
     update_zmalloc_stat_free(zmalloc_size(ptr));
     free(ptr);
 #else
+    // 最初通过malloc()分配空间的地址
     realptr = (char*)ptr-PREFIX_SIZE;
+
+    // 取出之前在第一个字节位置所保存的最初需要分配空间的大小
     oldsize = *((size_t*)realptr);
+
+    // 调用宏函数进行空间释放
     update_zmalloc_stat_free(oldsize+PREFIX_SIZE);
     free(realptr);
 #endif
 }
 
+// 复制字符串s的内容，到新的内存空间，构造新的字符串【堆区】。并将这段新的字符串地址返回。 
 char *zstrdup(const char *s) {
+    // 计算字符串长度，strlen不统计`\0`，所以要+1
     size_t l = strlen(s)+1;
+
+    // 调用zmalloc分配足够的空间，首地址为p
     char *p = zmalloc(l);
 
+    // 复制内容
     memcpy(p,s,l);
     return p;
 }
@@ -263,10 +286,13 @@ size_t zmalloc_used_memory(void) {
     return um;
 }
 
+// 启动线程安全模式
 void zmalloc_enable_thread_safeness(void) {
+    // 1-启用，默认值0-不启用
     zmalloc_thread_safe = 1;
 }
 
+// 自定义内存分配失败处理函数
 void zmalloc_set_oom_handler(void (*oom_handler)(size_t)) {
     zmalloc_oom_handler = oom_handler;
 }
