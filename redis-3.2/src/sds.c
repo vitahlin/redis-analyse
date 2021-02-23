@@ -54,6 +54,7 @@ static inline int sdsHdrSize(char type) {
     return 0;
 }
 
+// 计算sds头部类型
 static inline char sdsReqType(size_t string_size) {
     if (string_size < 1<<5)
         return SDS_TYPE_5;
@@ -83,13 +84,20 @@ sds sdsnewlen(const void *init, size_t initlen) {
     void *sh;
     sds s;
     char type = sdsReqType(initlen);
+
     /* Empty strings are usually created in order to append. Use type 8
      * since type 5 is not good at this. */
-    if (type == SDS_TYPE_5 && initlen == 0) type = SDS_TYPE_8;
+    // 如果要创建一个长度为0的空字符串，那么不使用SDS_TYPE_5类型的header，而是转而使用SDS_TYPE_8类型的header。
+    // 这是因为创建的空字符串一般接下来的操作很可能是追加数据，但SDS_TYPE_5类型的sds字符串不适合追加数据（会引发内存重新分配）。
+    if (type == SDS_TYPE_5 && initlen == 0) 
+        type = SDS_TYPE_8;
+
     int hdrlen = sdsHdrSize(type);
     unsigned char *fp; /* flags pointer. */
 
+    // 需要的内存空间一次性进行分配，其中包含三部分：header、数据、最后的多余字节（hdrlen+initlen+1）
     sh = s_malloc(hdrlen+initlen+1);
+
     if (!init)
         memset(sh, 0, hdrlen+initlen+1);
     if (sh == NULL) return NULL;
@@ -131,6 +139,8 @@ sds sdsnewlen(const void *init, size_t initlen) {
     }
     if (initlen && init)
         memcpy(s, init, initlen);
+
+    // 初始化的sds字符串数据最后会追加一个NULL结束符
     s[initlen] = '\0';
     return s;
 }
