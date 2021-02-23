@@ -81,7 +81,9 @@ static inline char sdsReqType(size_t string_size) {
  * \0 characters in the middle, as the length is stored in the sds header. */
 // 根据长度创建相应类型的sds，并初始化sds（若init不为空）
 sds sdsnewlen(const void *init, size_t initlen) {
+    // sdshdr的指针
     void *sh;
+
     sds s;
     char type = sdsReqType(initlen);
 
@@ -92,6 +94,7 @@ sds sdsnewlen(const void *init, size_t initlen) {
     if (type == SDS_TYPE_5 && initlen == 0) 
         type = SDS_TYPE_8;
 
+    // 每个sdshdr类型的大小都不一样，根据类型返回sdshdr的大小以计算需要分配的空间
     int hdrlen = sdsHdrSize(type);
     unsigned char *fp; /* flags pointer. */
 
@@ -105,7 +108,7 @@ sds sdsnewlen(const void *init, size_t initlen) {
     // 内存分配失败，返回NULL
     if (sh == NULL) return NULL;
 
-    // 保存实际内容的指针
+    // 通过sdshdr指针找到sds实际内容的位置
     s = (char*)sh+hdrlen;
 
     // flag指针
@@ -150,6 +153,7 @@ sds sdsnewlen(const void *init, size_t initlen) {
 
     // 如果有指定初始化内容，将它们复制到 sdshdr 的 buf 中
     if (initlen && init)
+        // memcpy不会因为'\0'而停下，支持二进制数据的拷贝
         memcpy(s, init, initlen);
 
     // 初始化的sds字符串数据最后会追加一个NULL结束符
@@ -159,6 +163,7 @@ sds sdsnewlen(const void *init, size_t initlen) {
 
 /* Create an empty (zero length) sds string. Even in this case the string
  * always has an implicit null term. */
+// 创建一个空字符串的sds
 sds sdsempty(void) {
     return sdsnewlen("",0);
 }
@@ -214,6 +219,7 @@ void sdsclear(sds s) {
  *
  * Note: this does not change the *length* of the sds string as returned
  * by sdslen(), but only the free buffer space we have. */
+// 扩展sds的预留空间，在扩充sds前调用，sds不会被扩充也不会改变len
 sds sdsMakeRoomFor(sds s, size_t addlen) {
     void *sh, *newsh;
     size_t avail = sdsavail(s);
@@ -222,16 +228,22 @@ sds sdsMakeRoomFor(sds s, size_t addlen) {
     int hdrlen;
 
     /* Return ASAP if there is enough space left. */
+    // 预留空间可以满足本次扩展，直接返回不处理内存
     if (avail >= addlen) return s;
 
     len = sdslen(s);
+
+    // 计算真实内容的指针
     sh = (char*)s-sdsHdrSize(oldtype);
+
+    // 扩充后的总长度小于1M，那么翻倍，否则每次只扩充1M
     newlen = (len+addlen);
     if (newlen < SDS_MAX_PREALLOC)
         newlen *= 2;
     else
         newlen += SDS_MAX_PREALLOC;
 
+    // 根据扩充后的总长度决定需要这个sds要用什么类型的sdshdr
     type = sdsReqType(newlen);
 
     /* Don't use type 5: the user is appending to the string and type 5 is
@@ -240,13 +252,16 @@ sds sdsMakeRoomFor(sds s, size_t addlen) {
     if (type == SDS_TYPE_5) type = SDS_TYPE_8;
 
     hdrlen = sdsHdrSize(type);
+
     if (oldtype==type) {
+        // 如果扩充后的sdshdr类型不变，则在原有的地方realloc就好。因为len和alloc的类型还是原来的。
         newsh = s_realloc(sh, hdrlen+newlen+1);
         if (newsh == NULL) return NULL;
         s = (char*)newsh+hdrlen;
     } else {
         /* Since the header size changes, need to move the string forward,
          * and can't use realloc */
+        // 如果扩充后的sdshdr类型变了，那就只能重新在别的地方分配内存，然后重新赋值，释放掉旧的内存。
         newsh = s_malloc(hdrlen+newlen+1);
         if (newsh == NULL) return NULL;
         memcpy((char*)newsh+hdrlen, s, len+1);
