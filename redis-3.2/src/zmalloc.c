@@ -67,6 +67,7 @@ void zlibc_free(void *ptr) {
 #define free(ptr) je_free(ptr)
 #endif
 
+// pthread_mutex_lock()和pthread_mutex_unlock()使用互斥锁（mutex）来实现线程同步
 #if defined(__ATOMIC_RELAXED)
 #define update_zmalloc_stat_add(__n) __atomic_add_fetch(&used_memory, (__n), __ATOMIC_RELAXED)
 #define update_zmalloc_stat_sub(__n) __atomic_sub_fetch(&used_memory, (__n), __ATOMIC_RELAXED)
@@ -88,6 +89,13 @@ void zlibc_free(void *ptr) {
 
 #endif
 
+// 更新全局变量used_memory（已分配内存的大小）的值
+// 这里do{}while(0)是为了辅助定义复杂的宏，避免引用的时候出错
+
+// 64位系统中，size(long)=8，所以第一个if语句等价于if(_n&7) _n += 8 - (_n&7);
+// 这就是判断分配的内存空间的大小是不是8的倍数，就加上相应的偏移量使之变成8的倍数
+// malloc本身能够保证所分配的内存是8字节对齐的，
+// 所以这里的真正目的是使变量user_memory精确的维护实际已经分配的大小
 #define update_zmalloc_stat_alloc(__n) do { \
     size_t _n = (__n); \
     if (_n&(sizeof(long)-1)) _n += sizeof(long)-(_n&(sizeof(long)-1)); \
@@ -108,10 +116,14 @@ void zlibc_free(void *ptr) {
     } \
 } while(0)
 
+// 全局变量，维护当前已经使用的内存大小
 static size_t used_memory = 0;
+
+// 线程安全状态
 static int zmalloc_thread_safe = 0;
 pthread_mutex_t used_memory_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// oom是out of memory 打印内存不足的错误信息并终止程序
 static void zmalloc_default_oom(size_t size) {
     fprintf(stderr, "zmalloc: Out of memory trying to allocate %zu bytes\n",
         size);
@@ -119,11 +131,15 @@ static void zmalloc_default_oom(size_t size) {
     abort();
 }
 
+// (*zmalloc_oom_handler)(size_t)是一个函数指针，指向函数zmalloc_default_oom
 static void (*zmalloc_oom_handler)(size_t) = zmalloc_default_oom;
 
+// 参数size是我们要分配的大小
 void *zmalloc(size_t size) {
+    // 实际分配的大小是size+PREFIX_SIZE
     void *ptr = malloc(size+PREFIX_SIZE);
 
+    // ptr指针为NULL，即内存分配失败，调用zmalloc_oom_handler(size)
     if (!ptr) zmalloc_oom_handler(size);
 #ifdef HAVE_MALLOC_SIZE
     update_zmalloc_stat_alloc(zmalloc_size(ptr));
@@ -135,7 +151,11 @@ void *zmalloc(size_t size) {
 #endif
 }
 
+// zcalloc()和zmalloc()具有相同的编程接口，实现功能基本相同，
+// 唯一不同之处是zcalloc()会做初始化工作，而zmalloc()不会
 void *zcalloc(size_t size) {
+    // calloc分配的空间大小是1*(size+PREFIX_SIZE)，
+    // 同时会对分配的空间做初始化工作，而malloc不会
     void *ptr = calloc(1, size+PREFIX_SIZE);
 
     if (!ptr) zmalloc_oom_handler(size);
@@ -149,6 +169,10 @@ void *zcalloc(size_t size) {
 #endif
 }
 
+// zrealloc()和realloc()具有相同的编程接口
+// realloc()要完成的功能是给首地址ptr的内存空间，重新分配大小。
+// 如果失败了，则在其它位置新建一块大小为size字节的空间，将原先的数据复制到新的内存空间，并返回这段内存首地址【原内存会被系统自然释放】。
+// zrealloc要完成的功能也类似
 void *zrealloc(void *ptr, size_t size) {
 #ifndef HAVE_MALLOC_SIZE
     void *realptr;
@@ -192,6 +216,7 @@ size_t zmalloc_size(void *ptr) {
 }
 #endif
 
+// 负责清除zmallc分配的空间
 void zfree(void *ptr) {
 #ifndef HAVE_MALLOC_SIZE
     void *realptr;
@@ -420,5 +445,3 @@ size_t zmalloc_get_memory_size(void) {
     return 0L;          /* Unknown OS. */
 #endif
 }
-
-
