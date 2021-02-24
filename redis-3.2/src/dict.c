@@ -81,6 +81,7 @@ unsigned int dictIntHashFunction(unsigned int key)
 
 static uint32_t dict_hash_function_seed = 5381;
 
+// 设置hash函数的种子
 void dictSetHashFunctionSeed(uint32_t seed) {
     dict_hash_function_seed = seed;
 }

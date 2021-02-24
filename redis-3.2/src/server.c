@@ -1461,13 +1461,27 @@ void createSharedObjects(void) {
 void initServerConfig(void) {
     int j;
 
+    // 设置server的runid，runid用来标识一个特定的唯一的已启动的redis实例
     getRandomHexChars(server.runid,CONFIG_RUN_ID_SIZE);
+
+    // 设置默认配置文件的绝对路径
     server.configfile = NULL;
+
+    // 设置可执行文件的绝对路径
     server.executable = NULL;
+
+    // serverCron()的调用频率，单位毫秒
     server.hz = CONFIG_DEFAULT_HZ;
+
+    // 设置runid的结束符
     server.runid[CONFIG_RUN_ID_SIZE] = '\0';
+
+    // 计算服务器是32位还是64位
     server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
+
+    // 设置服务器的端口
     server.port = CONFIG_DEFAULT_SERVER_PORT;
+
     server.tcp_backlog = CONFIG_DEFAULT_TCP_BACKLOG;
     server.bindaddr_count = 0;
     server.unixsocket = NULL;
@@ -4009,10 +4023,13 @@ int main(int argc, char **argv) {
     // 获取当前时间，赋值给tv
     gettimeofday(&tv,NULL);
 
+    // 设置哈希函数的种子
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
 
+    // 检查服务器是否以集群方式启动
     server.sentinel_mode = checkForSentinelMode(argc,argv);
 
+    // 初始化服务器
     initServerConfig();
 
     /* Store the executable path and arguments in a safe place in order
