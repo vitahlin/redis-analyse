@@ -3959,6 +3959,7 @@ int redisIsSupervised(int mode) {
 }
 
 
+// main函数
 int main(int argc, char **argv) {
     struct timeval tv;
     int j;
@@ -3993,13 +3994,25 @@ int main(int argc, char **argv) {
 #ifdef INIT_SETPROCTITLE_REPLACEMENT
     spt_init(argc, argv);
 #endif
+    // 设置时区
     setlocale(LC_COLLATE,"");
+
+    // 启动线程安全模式
     zmalloc_enable_thread_safeness();
+
+    // 设置oom发生时的函数指针，函数指针指向一个函数
     zmalloc_set_oom_handler(redisOutOfMemoryHandler);
+
+    // 设置随机数的种子，^代表异或
     srand(time(NULL)^getpid());
+
+    // 获取当前时间，赋值给tv
     gettimeofday(&tv,NULL);
+
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
+
     server.sentinel_mode = checkForSentinelMode(argc,argv);
+
     initServerConfig();
 
     /* Store the executable path and arguments in a safe place in order
