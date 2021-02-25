@@ -32,6 +32,11 @@
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+#include "ae.h"
+#include "zmalloc.h"
+
+// 解决implicit declaration of function 'close' is invalid in C99问题
+#include <unistd.h>
 
 typedef struct aeApiState {
     int kqfd;
