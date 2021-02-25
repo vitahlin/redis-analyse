@@ -33,6 +33,10 @@
 #include <sys/event.h>
 #include <sys/time.h>
 
+// 解决错误：redis-5.0.0/src/ae_kqueue.c:41:24: error: unknown type name 'aeEventLoop'
+#include "ae.h"
+#include "zmalloc.h"
+
 typedef struct aeApiState {
     int kqfd;
     struct kevent *events;
