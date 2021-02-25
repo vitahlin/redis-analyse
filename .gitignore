@@ -33,3 +33,6 @@ redis.info
 lcov-html
 
 .DS_Store
+.idea/
+cmake-build-debug/
+CMakeFiles/
