@@ -33,7 +33,11 @@
 #include <sys/event.h>
 #include <sys/time.h>
 
-// 解决错误：redis-5.0.0/src/ae_kqueue.c:41:24: error: unknown type name 'aeEventLoop'
+// 解决redis-server编译错误：src/ae_kqueue.c:74:5: error: implicit declaration of function 'close' is invalid in C99 [-Werror,-Wimplicit-function-declaration]
+//    close(state->kqfd);
+#include <unistd.h>
+
+// 解决redis-server编译错误：redis-5.0.0/src/ae_kqueue.c:41:24: error: unknown type name 'aeEventLoop'
 #include "ae.h"
 #include "zmalloc.h"
 
