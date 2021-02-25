@@ -36,3 +36,6 @@ lcov-html
 .idea/
 cmake-build-debug/
 CMakeFiles/
+*.cmake
+*.a
+
