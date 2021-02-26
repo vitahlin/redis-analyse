@@ -39,4 +39,4 @@ CMakeFiles/
 *.cmake
 *.a
 CMakeCache.txt
-redis.cbp
+*.cbp
