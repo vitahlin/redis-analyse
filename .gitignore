@@ -38,4 +38,5 @@ cmake-build-debug/
 CMakeFiles/
 *.cmake
 *.a
-
+CMakeCache.txt
+redis.cbp
