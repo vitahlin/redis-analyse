@@ -99,20 +99,24 @@ set(SRC_CLI
         )
 set(EXECUTABLE_OUTPUT_PATH src)
 
-link_directories(deps/linenoise/ deps/lua/src deps/hiredis)
+link_directories(deps/linenoise deps/lua/src deps/hiredis)
 
 add_executable(redis-server ${SRC_SERVER})
+add_executable(redis-cli ${SRC_CLI})
+
 target_include_directories(redis-server
         PRIVATE ${REDIS_ROOT}/deps/linenoise
         PRIVATE ${REDIS_ROOT}/deps/hiredis
         PRIVATE ${REDIS_ROOT}/deps/lua/src)
+
 target_link_libraries(redis-server
         PRIVATE pthread
         PRIVATE m
         PRIVATE lua
         PRIVATE linenoise
         PRIVATE hiredis)
-add_executable(redis-cli ${SRC_CLI})
+
+
 target_include_directories(redis-cli
         PRIVATE ${REDIS_ROOT}/deps/linenoise
         PRIVATE ${REDIS_ROOT}/deps/hiredis
