@@ -42,14 +42,12 @@ target_include_directories(redis-server
         PRIVATE ${REDIS_ROOT}/deps/linenoise
         PRIVATE ${REDIS_ROOT}/deps/hiredis
         PRIVATE ${REDIS_ROOT}/deps/lua/src)
-
 target_link_libraries(redis-server
         PRIVATE pthread
         PRIVATE m
         PRIVATE lua
         PRIVATE linenoise
         PRIVATE hiredis)
-
 
 target_include_directories(redis-cli
         PRIVATE ${REDIS_ROOT}/deps/linenoise
