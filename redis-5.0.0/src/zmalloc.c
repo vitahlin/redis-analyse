@@ -71,6 +71,13 @@ void zlibc_free(void *ptr) {
 #define dallocx(ptr,flags) je_dallocx(ptr,flags)
 #endif
 
+/**
+ * 更新全局变量used_memory已分配内存大小的值
+ * 1. 这里do-while(0)是为了辅助定义复杂的宏，避免引用的时候出错
+ * 2. 64位系统中，size(long)=8，所以第一个if语句等价于if(_n&7) _n += 8 - (_n&7);
+ * 这就是判断分配的内存空间的大小是不是8的倍数，如果不是就加上相应的偏移量使之变成8的倍数。
+ * 3. malloc本身能够保证所分配的内存是8字节对齐的，所以这里的真正目的是使used_memory精确的维护实际已经分配的大小
+ */
 #define update_zmalloc_stat_alloc(__n) do { \
     size_t _n = (__n); \
     if (_n&(sizeof(long)-1)) _n += sizeof(long)-(_n&(sizeof(long)-1)); \
@@ -83,28 +90,44 @@ void zlibc_free(void *ptr) {
     atomicDecr(used_memory,__n); \
 } while(0)
 
+// 全局变量，维护已经使用的内存大小
 static size_t used_memory = 0;
 pthread_mutex_t used_memory_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+/**
+ * oom的默认处理函数
+ * oom是out of memory，打印内存不足的错误信息并终止程序，
+ * @param size 当前要分配的空间
+ */
 static void zmalloc_default_oom(size_t size) {
-    fprintf(stderr, "zmalloc: Out of memory trying to allocate %zu bytes\n",
-        size);
+    fprintf(stderr, "zmalloc: Out of memory trying to allocate %zu bytes\n",size);
     fflush(stderr);
     abort();
 }
 
+// (*zmalloc_oom_handler)(size_t)是一个函数指针，指向函数zmalloc_default_oom
 static void (*zmalloc_oom_handler)(size_t) = zmalloc_default_oom;
 
+/**
+ * 申请size个字节的内存空间大小
+ * @param size 要申请的字节数，实际申请的字节数=size+1，第一个字节用来保存当前存储数据的字节数
+ * @return 存储实际数据的指针，而不是第一个存储所需字节数量的指针
+ */
 void *zmalloc(size_t size) {
+    // 实际分配的大小是size+PREFIX_SIZE，调用的还是malloc函数
     void *ptr = malloc(size+PREFIX_SIZE);
 
+    // ptr指针为NULL，即内存分配失败，调用zmalloc_oom_handler(size)
     if (!ptr) zmalloc_oom_handler(size);
 #ifdef HAVE_MALLOC_SIZE
     update_zmalloc_stat_alloc(zmalloc_size(ptr));
     return ptr;
 #else
+    // 在已分配空间的第一个字长（前8个字节）处存储需要分配的实际的字节大小
     *((size_t*)ptr) = size;
     update_zmalloc_stat_alloc(size+PREFIX_SIZE);
+
+    // 实际返回的是，存储数据的指针，而不是第一个存储所需字节数的指针
     return (char*)ptr+PREFIX_SIZE;
 #endif
 }
@@ -127,7 +150,18 @@ void zfree_no_tcache(void *ptr) {
 }
 #endif
 
+/**
+ * 和zmalloc具有相同的编程接口，实现功能基本相同。
+ * 唯一不同之处是zcalloc()会做初始化工作，而zmalloc()不会
+ * @param size 想分配的内存空间
+ * @return
+ */
 void *zcalloc(size_t size) {
+    /**
+     * calloc()的功能是也是分配内存空间，与malloc()的不同之处有两点:
+     * 1. 它分配的空间大小是 size * nmemb。比如calloc(10,sizoef(char)); 则分配10个字节
+     * 2. calloc()会对分配的空间做初始化工作（初始化为0），而malloc()不会
+     */
     void *ptr = calloc(1, size+PREFIX_SIZE);
 
     if (!ptr) zmalloc_oom_handler(size);
@@ -141,6 +175,17 @@ void *zcalloc(size_t size) {
 #endif
 }
 
+/**
+ * zrealloc()和realloc()具有相同的编程接口
+ *
+ * realloc()要完成的功能是给首地址ptr的内存空间重新分配大小。如果失败了，
+ * 则在其它位置新建一块大小为size字节的空间，将原先的数据复制到新的内存空间，并返回这段内存首地址【原内存会被系统自然释放】。
+ *
+ * zrealloc要完成的功能也类似
+ * @param ptr
+ * @param size
+ * @return
+ */
 void *zrealloc(void *ptr, size_t size) {
 #ifndef HAVE_MALLOC_SIZE
     void *realptr;
@@ -158,14 +203,25 @@ void *zrealloc(void *ptr, size_t size) {
     update_zmalloc_stat_alloc(zmalloc_size(newptr));
     return newptr;
 #else
+    // 拿到存储实际分配空间大小的指针地址
     realptr = (char*)ptr-PREFIX_SIZE;
+
+    // 拿到实际分配空间大小的值
     oldsize = *((size_t*)realptr);
+
+    // 在其他位置新建一个大小为size+PREFIX_SIZE的空间
     newptr = realloc(realptr,size+PREFIX_SIZE);
+
+    // 内存开发失败，打印错误内容并退出
     if (!newptr) zmalloc_oom_handler(size);
 
+    // 首字节用来保存地址
     *((size_t*)newptr) = size;
+
+    // 更新内存使用大小
     update_zmalloc_stat_free(oldsize+PREFIX_SIZE);
     update_zmalloc_stat_alloc(size+PREFIX_SIZE);
+
     return (char*)newptr+PREFIX_SIZE;
 #endif
 }
@@ -187,6 +243,10 @@ size_t zmalloc_usable(void *ptr) {
 }
 #endif
 
+/**
+ * 清除zmalloc分配的空间
+ * @param ptr
+ */
 void zfree(void *ptr) {
 #ifndef HAVE_MALLOC_SIZE
     void *realptr;
@@ -198,17 +258,31 @@ void zfree(void *ptr) {
     update_zmalloc_stat_free(zmalloc_size(ptr));
     free(ptr);
 #else
+    // 原先通过malloc()分配空间的地址
     realptr = (char*)ptr-PREFIX_SIZE;
+
+    // 取出之前在第一个字节位置所保存的最初需要分配空间的大小
     oldsize = *((size_t*)realptr);
+
+    // 调用宏函数进行空间释放
     update_zmalloc_stat_free(oldsize+PREFIX_SIZE);
     free(realptr);
 #endif
 }
 
+/**
+ * 复制字符串s的内容到新的内存空间，构造新的字符串堆区，并将这段新的字符串地址返回
+ * @param s
+ * @return
+ */
 char *zstrdup(const char *s) {
+    // 计算字符串长度，strlen不统计`\0`，所以要+1
     size_t l = strlen(s)+1;
+
+    // 调用zmalloc分配足够的空间，首地址为p
     char *p = zmalloc(l);
 
+    // 复制内容
     memcpy(p,s,l);
     return p;
 }
@@ -219,6 +293,10 @@ size_t zmalloc_used_memory(void) {
     return um;
 }
 
+/**
+ * 自定义内存分配失败处理函数
+ * @param oom_handler
+ */
 void zmalloc_set_oom_handler(void (*oom_handler)(size_t)) {
     zmalloc_oom_handler = oom_handler;
 }
