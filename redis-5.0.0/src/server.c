@@ -1522,16 +1522,31 @@ void initServerConfig(void) {
     pthread_mutex_init(&server.unixtime_mutex,NULL);
 
     updateCachedTime();
+
+    // 设置server的runid，runid用来标识一个特定的唯一的已启动的redis实例
     getRandomHexChars(server.runid,CONFIG_RUN_ID_SIZE);
     server.runid[CONFIG_RUN_ID_SIZE] = '\0';
+
     changeReplicationId();
     clearReplicationId2();
+
+    // 设置时区
     server.timezone = timezone; /* Initialized by tzset(). */
+
+    // 设置默认配置文件的绝对路径
     server.configfile = NULL;
+
+    // 设置可执行文件的绝对路径
     server.executable = NULL;
+
+
     server.config_hz = CONFIG_DEFAULT_HZ;
     server.dynamic_hz = CONFIG_DEFAULT_DYNAMIC_HZ;
+
+    // 计算服务器时32位还是64位
     server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
+
+    // 服务器端口
     server.port = CONFIG_DEFAULT_SERVER_PORT;
     server.tcp_backlog = CONFIG_DEFAULT_TCP_BACKLOG;
     server.bindaddr_count = 0;
@@ -4033,16 +4048,29 @@ int main(int argc, char **argv) {
 #ifdef INIT_SETPROCTITLE_REPLACEMENT
     spt_init(argc, argv);
 #endif
+    // 设置时区
     setlocale(LC_COLLATE,"");
     tzset(); /* Populates 'timezone' global. */
+
+    // 设置oom发生时的函数指针，函数指针指向一个函数
     zmalloc_set_oom_handler(redisOutOfMemoryHandler);
+
+    // 设置随机数的种子，^代表异或
     srand(time(NULL)^getpid());
+
+    // 把当前时间赋值给tv
     gettimeofday(&tv,NULL);
 
     char hashseed[16];
     getRandomHexChars(hashseed,sizeof(hashseed));
+
+    // 设置哈希函数的种子
     dictSetHashFunctionSeed((uint8_t*)hashseed);
+
+    // 检查服务器是否以集群方式启动
     server.sentinel_mode = checkForSentinelMode(argc,argv);
+
+    // 初始化服务器
     initServerConfig();
     moduleInitModulesSystem();
 
