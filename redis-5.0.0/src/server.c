@@ -4061,10 +4061,9 @@ int main(int argc, char **argv) {
     // 把当前时间赋值给tv
     gettimeofday(&tv,NULL);
 
+    // 设置哈希函数的种子
     char hashseed[16];
     getRandomHexChars(hashseed,sizeof(hashseed));
-
-    // 设置哈希函数的种子
     dictSetHashFunctionSeed((uint8_t*)hashseed);
 
     // 检查服务器是否以集群方式启动
@@ -4072,6 +4071,7 @@ int main(int argc, char **argv) {
 
     // 初始化服务器
     initServerConfig();
+
     moduleInitModulesSystem();
 
     /* Store the executable path and arguments in a safe place in order
