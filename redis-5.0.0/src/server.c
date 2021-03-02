@@ -1053,8 +1053,15 @@ void databasesCron(void) {
  * virtual memory and aging there is to store the current time in objects at
  * every object access, and accuracy is not needed. To access a global var is
  * a lot faster than calling time(NULL) */
+/**
+ * 在全局状态下缓存unix时间的值
+ * 因为在虚拟内存老化的情况下，每次访问对象都要将当前时间存储在对象中，
+ * 访问全局变量比调用时间(NULL)快得多，在不需要准确的获取时间的情况下，可以访问内存
+ */
 void updateCachedTime(void) {
     time_t unixtime = time(NULL);
+
+    // 原子操作
     atomicSet(server.unixtime,unixtime);
     server.mstime = mstime();
 
@@ -1514,13 +1521,18 @@ void createSharedObjects(void) {
     shared.maxstring = sdsnew("maxstring");
 }
 
+/**
+ * 初始化服务器，设置全局对象server的状态
+ */
 void initServerConfig(void) {
     int j;
 
+    // 互斥锁初始化
     pthread_mutex_init(&server.next_client_id_mutex,NULL);
     pthread_mutex_init(&server.lruclock_mutex,NULL);
     pthread_mutex_init(&server.unixtime_mutex,NULL);
 
+    // 更新server中的时间缓存
     updateCachedTime();
 
     // 设置server的runid，runid用来标识一个特定的唯一的已启动的redis实例
@@ -4048,8 +4060,10 @@ int main(int argc, char **argv) {
 #ifdef INIT_SETPROCTITLE_REPLACEMENT
     spt_init(argc, argv);
 #endif
-    // 设置时区
+    // 设置地域，对字符集有影响
     setlocale(LC_COLLATE,"");
+
+    // 设置时区
     tzset(); /* Populates 'timezone' global. */
 
     // 设置oom发生时的函数指针，函数指针指向一个函数
@@ -4063,13 +4077,15 @@ int main(int argc, char **argv) {
 
     // 设置哈希函数的种子
     char hashseed[16];
+    // 从/dev/urandom文件获取随机数生成dict所需的随机种子
+    // urandom记录系统混乱值，包括软硬件信息
     getRandomHexChars(hashseed,sizeof(hashseed));
     dictSetHashFunctionSeed((uint8_t*)hashseed);
 
     // 检查服务器是否以集群方式启动
     server.sentinel_mode = checkForSentinelMode(argc,argv);
 
-    // 初始化服务器
+    // 初始化服务器，设置全局对象server的状态
     initServerConfig();
 
     moduleInitModulesSystem();
