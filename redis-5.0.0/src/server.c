@@ -1551,11 +1551,10 @@ void initServerConfig(void) {
     // 设置可执行文件的绝对路径
     server.executable = NULL;
 
-
     server.config_hz = CONFIG_DEFAULT_HZ;
     server.dynamic_hz = CONFIG_DEFAULT_DYNAMIC_HZ;
 
-    // 计算服务器时32位还是64位
+    // 计算服务器是32位还是64位
     server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
 
     // 服务器端口
