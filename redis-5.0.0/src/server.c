@@ -1070,7 +1070,10 @@ void updateCachedTime(void) {
      * since we will never fork() while here, in the main thread. The logging
      * function will call a thread safe version of localtime that has no locks. */
     struct tm tm;
+
     localtime_r(&server.unixtime,&tm);
+
+    // 夏令时标识符
     server.daylight_active = tm.tm_isdst;
 }
 
@@ -2032,10 +2035,17 @@ void resetServerStats(void) {
     server.aof_delayed_fsync = 0;
 }
 
+/**
+ * 对server进行初始化的入口，是server最重要的入口点
+ */
 void initServer(void) {
     int j;
 
+    // 信号忽略处理，redis多作为守护进程运行，这时不会有控制终端，首先忽略掉SIGHUP信号
     signal(SIGHUP, SIG_IGN);
+
+    // 信号忽略处理，SIGPIPE信号是在写管道发现读进程终止时产生的信号，写已终止的SOCK_STREAM套接字同样会产生此信号。
+    // redis作为server，不可避免的会遇到各种各样的client，client意外终止导致产生的信号也应该在server启动后忽略掉；
     signal(SIGPIPE, SIG_IGN);
     setupSignalHandlers();
 
@@ -3803,6 +3813,11 @@ void redisAsciiArt(void) {
     zfree(buf);
 }
 
+/**
+ * 程序收到关闭信号时的处理函数
+ * 收到终止信号时，并不直接退出，只是记录一个终止标记表示程序处于待终止状态
+ * @param sig
+ */
 static void sigShutdownHandler(int sig) {
     char *msg;
 
@@ -3821,6 +3836,7 @@ static void sigShutdownHandler(int sig) {
      * If we receive the signal the second time, we interpret this as
      * the user really wanting to quit ASAP without waiting to persist
      * on disk. */
+    // 处于待终止状态，再次收到终止信号，则直接处理退出
     if (server.shutdown_asap && sig == SIGINT) {
         serverLogFromHandler(LL_WARNING, "You insist... exiting now.");
         rdbRemoveTempFile(getpid());
@@ -3830,9 +3846,14 @@ static void sigShutdownHandler(int sig) {
     }
 
     serverLogFromHandler(LL_WARNING, msg);
+
+    // 设置终止标记
     server.shutdown_asap = 1;
 }
 
+/**
+ * 设置相关的信号处理函数
+ */
 void setupSignalHandlers(void) {
     struct sigaction act;
 
@@ -3841,16 +3862,28 @@ void setupSignalHandlers(void) {
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
     act.sa_handler = sigShutdownHandler;
+
+    // SIGTERM是kill命令发送的系统默认终止信号
     sigaction(SIGTERM, &act, NULL);
+
+    // SIGINT程序终止信号
     sigaction(SIGINT, &act, NULL);
 
 #ifdef HAVE_BACKTRACE
     sigemptyset(&act.sa_mask);
     act.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;
     act.sa_sigaction = sigsegvHandler;
+
+    // 无效内存访问信号
     sigaction(SIGSEGV, &act, NULL);
+
+    // 非法内存访问信号
     sigaction(SIGBUS, &act, NULL);
+
+    // 浮点异常信号
     sigaction(SIGFPE, &act, NULL);
+
+    // 非法指令信号
     sigaction(SIGILL, &act, NULL);
 #endif
     return;
@@ -4062,7 +4095,11 @@ int main(int argc, char **argv) {
     // 设置地域，对字符集有影响
     setlocale(LC_COLLATE,"");
 
-    // 设置时区
+    /**
+     * 初始化时区，主要用于时间网络同步协议
+     * 若在运行时改变时间会导致下一次读取当前系统时间的调用出现问题
+     * 调用tzset就会防止此问题的发生
+     */
     tzset(); /* Populates 'timezone' global. */
 
     // 设置oom发生时的函数指针，函数指针指向一个函数
@@ -4087,6 +4124,7 @@ int main(int argc, char **argv) {
     // 初始化服务器，设置全局对象server的状态
     initServerConfig();
 
+    // 用于自定义模块加载
     moduleInitModulesSystem();
 
     /* Store the executable path and arguments in a safe place in order
@@ -4187,12 +4225,14 @@ int main(int argc, char **argv) {
             strtol(redisGitDirty(),NULL,10) > 0,
             (int)getpid());
 
+    // 根据运行参数打印配置文件选择的日志
     if (argc == 1) {
         serverLog(LL_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/%s.conf", argv[0], server.sentinel_mode ? "sentinel" : "redis");
     } else {
         serverLog(LL_WARNING, "Configuration loaded");
     }
 
+    // 后台启动守护进程处理
     server.supervised = redisIsSupervised(server.supervised_mode);
     int background = server.daemonize && !server.supervised;
     if (background) daemonize();

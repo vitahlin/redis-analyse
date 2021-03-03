@@ -1055,6 +1055,12 @@ void dumpX86Calls(void *addr, size_t len) {
     }
 }
 
+/**
+ * 指令异常的信号处理函数
+ * @param sig
+ * @param info
+ * @param secret
+ */
 void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
     ucontext_t *uc = (ucontext_t*) secret;
     void *eip = getMcontextEip(uc);
