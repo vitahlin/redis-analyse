@@ -2047,6 +2047,8 @@ void initServer(void) {
     // 信号忽略处理，SIGPIPE信号是在写管道发现读进程终止时产生的信号，写已终止的SOCK_STREAM套接字同样会产生此信号。
     // redis作为server，不可避免的会遇到各种各样的client，client意外终止导致产生的信号也应该在server启动后忽略掉；
     signal(SIGPIPE, SIG_IGN);
+
+    // 设置其他信号的处理函数，比如说终止信号、异常信号等
     setupSignalHandlers();
 
     if (server.syslog_enabled) {
