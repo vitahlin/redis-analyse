@@ -4,19 +4,18 @@ project(redis3.2 VERSION 3.2)
 
 set(CMAKE_BUILD_TYPE "Debug")
 
-message(STATUS "Host is: ${CMAKE_HOST_SYSTEM}.  Build target is: ${CMAKE_SYSTEM}")
+#message(STATUS "Host is: ${CMAKE_HOST_SYSTEM}.  Build target is: ${CMAKE_SYSTEM}")
 get_filename_component(REDIS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
-message(STATUS "Project root directory is: ${REDIS_ROOT}")
+#message(STATUS "Project root directory is: ${REDIS_ROOT}")
 
 add_subdirectory(deps)
-#add_subdirectory(our-redis-implementation)
 
 set(SRC_SERVER_LIB
         src/adlist.c
         src/ae.c
-#        src/ae_epoll.c
-#        src/ae_evport.c
-#        src/ae_select.c
+        src/ae_epoll.c
+        src/ae_evport.c
+        src/ae_select.c
         src/ae_kqueue.c
         src/anet.c
         src/aof.c
@@ -71,21 +70,8 @@ set(SRC_SERVER_LIB
         )
 set(SRC_SERVER src/server.c ${SRC_SERVER_LIB})
 
-set(SRC_CLI
-        src/anet.c
-        src/sds.c
-        src/adlist.c
-        src/redis-cli.c
-        src/zmalloc.c
-        src/release.c
-        src/anet.c
-        src/ae.c
-        src/crc64.c
-        )
-
-
 set(EXECUTABLE_OUTPUT_PATH src)
-link_directories(deps/linenoise/ deps/lua deps/hiredis deps/geohash-int)
+link_directories(deps/linenoise deps/lua/src deps/hiredis deps/geohash-int)
 add_executable(redis-server ${SRC_SERVER})
 
 target_include_directories(redis-server
@@ -99,34 +85,6 @@ target_link_libraries(redis-server
         PRIVATE dl
         PRIVATE m
         PRIVATE lua
-        PRIVATE linenoise
-        PRIVATE hiredis
-        )
-#add_executable(redis-example  src/test/sds_test.c)
-#target_include_directories(redis-example
-#        PRIVATE ${REDIS_ROOT}/deps/linenoise
-#        PRIVATE ${REDIS_ROOT}/deps/hiredis
-#        PRIVATE ${REDIS_ROOT}/deps/lua/src
-#        )
-#target_link_libraries(redis-example
-#        PRIVATE pthread
-#        PRIVATE dl
-#        PRIVATE m
-#        PRIVATE lua
-#        PRIVATE linenoise
-#        PRIVATE hiredis
-#        )
-
-
-add_executable(redis-cli ${SRC_CLI})
-target_include_directories(redis-cli
-        PRIVATE ${REDIS_ROOT}/deps/linenoise
-        PRIVATE ${REDIS_ROOT}/deps/hiredis
-        PRIVATE ${REDIS_ROOT}/deps/lua/src
-        )
-target_link_libraries(redis-cli
-        PRIVATE pthread
-        PRIVATE m
         PRIVATE linenoise
         PRIVATE hiredis
         )

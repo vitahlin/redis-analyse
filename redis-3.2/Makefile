@@ -89,8 +89,8 @@ rebuild_cache/fast: rebuild_cache
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/usr/local/Cellar/cmake/3.19.6/bin/ccmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -129,19 +129,6 @@ preinstall/fast:
 depend:
 	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
-
-#=============================================================================
-# Target rules for targets named redis-cli
-
-# Build rule for target.
-redis-cli: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 redis-cli
-.PHONY : redis-cli
-
-# fast build rule for target.
-redis-cli/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/build
-.PHONY : redis-cli/fast
 
 #=============================================================================
 # Target rules for targets named redis-server
@@ -195,13 +182,25 @@ lua/fast:
 	$(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/build
 .PHONY : lua/fast
 
+#=============================================================================
+# Target rules for targets named geohash-int
+
+# Build rule for target.
+geohash-int: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 geohash-int
+.PHONY : geohash-int
+
+# fast build rule for target.
+geohash-int/fast:
+	$(MAKE) $(MAKESILENT) -f deps/geohash-int/CMakeFiles/geohash-int.dir/build.make deps/geohash-int/CMakeFiles/geohash-int.dir/build
+.PHONY : geohash-int/fast
+
 src/adlist.o: src/adlist.c.o
 
 .PHONY : src/adlist.o
 
 # target to build an object file
 src/adlist.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/adlist.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/adlist.c.o
 .PHONY : src/adlist.c.o
 
@@ -211,7 +210,6 @@ src/adlist.i: src/adlist.c.i
 
 # target to preprocess a source file
 src/adlist.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/adlist.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/adlist.c.i
 .PHONY : src/adlist.c.i
 
@@ -221,7 +219,6 @@ src/adlist.s: src/adlist.c.s
 
 # target to generate assembly for a file
 src/adlist.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/adlist.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/adlist.c.s
 .PHONY : src/adlist.c.s
 
@@ -231,7 +228,6 @@ src/ae.o: src/ae.c.o
 
 # target to build an object file
 src/ae.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/ae.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae.c.o
 .PHONY : src/ae.c.o
 
@@ -241,7 +237,6 @@ src/ae.i: src/ae.c.i
 
 # target to preprocess a source file
 src/ae.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/ae.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae.c.i
 .PHONY : src/ae.c.i
 
@@ -251,9 +246,62 @@ src/ae.s: src/ae.c.s
 
 # target to generate assembly for a file
 src/ae.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/ae.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae.c.s
 .PHONY : src/ae.c.s
+
+src/ae_epoll.o: src/ae_epoll.c.o
+
+.PHONY : src/ae_epoll.o
+
+# target to build an object file
+src/ae_epoll.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_epoll.c.o
+.PHONY : src/ae_epoll.c.o
+
+src/ae_epoll.i: src/ae_epoll.c.i
+
+.PHONY : src/ae_epoll.i
+
+# target to preprocess a source file
+src/ae_epoll.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_epoll.c.i
+.PHONY : src/ae_epoll.c.i
+
+src/ae_epoll.s: src/ae_epoll.c.s
+
+.PHONY : src/ae_epoll.s
+
+# target to generate assembly for a file
+src/ae_epoll.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_epoll.c.s
+.PHONY : src/ae_epoll.c.s
+
+src/ae_evport.o: src/ae_evport.c.o
+
+.PHONY : src/ae_evport.o
+
+# target to build an object file
+src/ae_evport.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_evport.c.o
+.PHONY : src/ae_evport.c.o
+
+src/ae_evport.i: src/ae_evport.c.i
+
+.PHONY : src/ae_evport.i
+
+# target to preprocess a source file
+src/ae_evport.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_evport.c.i
+.PHONY : src/ae_evport.c.i
+
+src/ae_evport.s: src/ae_evport.c.s
+
+.PHONY : src/ae_evport.s
+
+# target to generate assembly for a file
+src/ae_evport.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_evport.c.s
+.PHONY : src/ae_evport.c.s
 
 src/ae_kqueue.o: src/ae_kqueue.c.o
 
@@ -282,13 +330,39 @@ src/ae_kqueue.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_kqueue.c.s
 .PHONY : src/ae_kqueue.c.s
 
+src/ae_select.o: src/ae_select.c.o
+
+.PHONY : src/ae_select.o
+
+# target to build an object file
+src/ae_select.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_select.c.o
+.PHONY : src/ae_select.c.o
+
+src/ae_select.i: src/ae_select.c.i
+
+.PHONY : src/ae_select.i
+
+# target to preprocess a source file
+src/ae_select.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_select.c.i
+.PHONY : src/ae_select.c.i
+
+src/ae_select.s: src/ae_select.c.s
+
+.PHONY : src/ae_select.s
+
+# target to generate assembly for a file
+src/ae_select.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/ae_select.c.s
+.PHONY : src/ae_select.c.s
+
 src/anet.o: src/anet.c.o
 
 .PHONY : src/anet.o
 
 # target to build an object file
 src/anet.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/anet.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/anet.c.o
 .PHONY : src/anet.c.o
 
@@ -298,7 +372,6 @@ src/anet.i: src/anet.c.i
 
 # target to preprocess a source file
 src/anet.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/anet.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/anet.c.i
 .PHONY : src/anet.c.i
 
@@ -308,7 +381,6 @@ src/anet.s: src/anet.c.s
 
 # target to generate assembly for a file
 src/anet.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/anet.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/anet.c.s
 .PHONY : src/anet.c.s
 
@@ -474,13 +546,39 @@ src/config.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/config.c.s
 .PHONY : src/config.c.s
 
+src/crc16.o: src/crc16.c.o
+
+.PHONY : src/crc16.o
+
+# target to build an object file
+src/crc16.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/crc16.c.o
+.PHONY : src/crc16.c.o
+
+src/crc16.i: src/crc16.c.i
+
+.PHONY : src/crc16.i
+
+# target to preprocess a source file
+src/crc16.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/crc16.c.i
+.PHONY : src/crc16.c.i
+
+src/crc16.s: src/crc16.c.s
+
+.PHONY : src/crc16.s
+
+# target to generate assembly for a file
+src/crc16.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/crc16.c.s
+.PHONY : src/crc16.c.s
+
 src/crc64.o: src/crc64.c.o
 
 .PHONY : src/crc64.o
 
 # target to build an object file
 src/crc64.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/crc64.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/crc64.c.o
 .PHONY : src/crc64.c.o
 
@@ -490,7 +588,6 @@ src/crc64.i: src/crc64.c.i
 
 # target to preprocess a source file
 src/crc64.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/crc64.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/crc64.c.i
 .PHONY : src/crc64.c.i
 
@@ -500,7 +597,6 @@ src/crc64.s: src/crc64.c.s
 
 # target to generate assembly for a file
 src/crc64.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/crc64.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/crc64.c.s
 .PHONY : src/crc64.c.s
 
@@ -990,40 +1086,12 @@ src/rdb.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/rdb.c.s
 .PHONY : src/rdb.c.s
 
-src/redis-cli.o: src/redis-cli.c.o
-
-.PHONY : src/redis-cli.o
-
-# target to build an object file
-src/redis-cli.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/redis-cli.c.o
-.PHONY : src/redis-cli.c.o
-
-src/redis-cli.i: src/redis-cli.c.i
-
-.PHONY : src/redis-cli.i
-
-# target to preprocess a source file
-src/redis-cli.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/redis-cli.c.i
-.PHONY : src/redis-cli.c.i
-
-src/redis-cli.s: src/redis-cli.c.s
-
-.PHONY : src/redis-cli.s
-
-# target to generate assembly for a file
-src/redis-cli.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/redis-cli.c.s
-.PHONY : src/redis-cli.c.s
-
 src/release.o: src/release.c.o
 
 .PHONY : src/release.o
 
 # target to build an object file
 src/release.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/release.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/release.c.o
 .PHONY : src/release.c.o
 
@@ -1033,7 +1101,6 @@ src/release.i: src/release.c.i
 
 # target to preprocess a source file
 src/release.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/release.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/release.c.i
 .PHONY : src/release.c.i
 
@@ -1043,7 +1110,6 @@ src/release.s: src/release.c.s
 
 # target to generate assembly for a file
 src/release.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/release.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/release.c.s
 .PHONY : src/release.c.s
 
@@ -1134,7 +1200,6 @@ src/sds.o: src/sds.c.o
 
 # target to build an object file
 src/sds.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/sds.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/sds.c.o
 .PHONY : src/sds.c.o
 
@@ -1144,7 +1209,6 @@ src/sds.i: src/sds.c.i
 
 # target to preprocess a source file
 src/sds.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/sds.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/sds.c.i
 .PHONY : src/sds.c.i
 
@@ -1154,7 +1218,6 @@ src/sds.s: src/sds.c.s
 
 # target to generate assembly for a file
 src/sds.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/sds.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/sds.c.s
 .PHONY : src/sds.c.s
 
@@ -1596,7 +1659,6 @@ src/zmalloc.o: src/zmalloc.c.o
 
 # target to build an object file
 src/zmalloc.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/zmalloc.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/zmalloc.c.o
 .PHONY : src/zmalloc.c.o
 
@@ -1606,7 +1668,6 @@ src/zmalloc.i: src/zmalloc.c.i
 
 # target to preprocess a source file
 src/zmalloc.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/zmalloc.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/zmalloc.c.i
 .PHONY : src/zmalloc.c.i
 
@@ -1616,7 +1677,6 @@ src/zmalloc.s: src/zmalloc.c.s
 
 # target to generate assembly for a file
 src/zmalloc.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-cli.dir/build.make CMakeFiles/redis-cli.dir/src/zmalloc.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/redis-server.dir/build.make CMakeFiles/redis-server.dir/src/zmalloc.c.s
 .PHONY : src/zmalloc.c.s
 
@@ -1628,10 +1688,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... geohash-int"
 	@echo "... hiredis"
 	@echo "... linenoise"
 	@echo "... lua"
-	@echo "... redis-cli"
 	@echo "... redis-server"
 	@echo "... src/adlist.o"
 	@echo "... src/adlist.i"
@@ -1639,9 +1699,18 @@ help:
 	@echo "... src/ae.o"
 	@echo "... src/ae.i"
 	@echo "... src/ae.s"
+	@echo "... src/ae_epoll.o"
+	@echo "... src/ae_epoll.i"
+	@echo "... src/ae_epoll.s"
+	@echo "... src/ae_evport.o"
+	@echo "... src/ae_evport.i"
+	@echo "... src/ae_evport.s"
 	@echo "... src/ae_kqueue.o"
 	@echo "... src/ae_kqueue.i"
 	@echo "... src/ae_kqueue.s"
+	@echo "... src/ae_select.o"
+	@echo "... src/ae_select.i"
+	@echo "... src/ae_select.s"
 	@echo "... src/anet.o"
 	@echo "... src/anet.i"
 	@echo "... src/anet.s"
@@ -1663,6 +1732,9 @@ help:
 	@echo "... src/config.o"
 	@echo "... src/config.i"
 	@echo "... src/config.s"
+	@echo "... src/crc16.o"
+	@echo "... src/crc16.i"
+	@echo "... src/crc16.s"
 	@echo "... src/crc64.o"
 	@echo "... src/crc64.i"
 	@echo "... src/crc64.s"
@@ -1720,9 +1792,6 @@ help:
 	@echo "... src/rdb.o"
 	@echo "... src/rdb.i"
 	@echo "... src/rdb.s"
-	@echo "... src/redis-cli.o"
-	@echo "... src/redis-cli.i"
-	@echo "... src/redis-cli.s"
 	@echo "... src/release.o"
 	@echo "... src/release.i"
 	@echo "... src/release.s"

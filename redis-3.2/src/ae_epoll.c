@@ -30,6 +30,8 @@
 
 
 #include <sys/epoll.h>
+#include "zmalloc.h"
+#include "server.h"
 
 typedef struct aeApiState {
     int epfd;

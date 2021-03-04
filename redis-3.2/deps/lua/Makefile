@@ -89,8 +89,8 @@ rebuild_cache/fast: rebuild_cache
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/usr/local/Cellar/cmake/3.19.6/bin/ccmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -144,6 +144,33 @@ lua: deps/lua/CMakeFiles/lua.dir/rule
 lua/fast:
 	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/build
 .PHONY : lua/fast
+
+src/fpconv.o: src/fpconv.c.o
+
+.PHONY : src/fpconv.o
+
+# target to build an object file
+src/fpconv.c.o:
+	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/fpconv.c.o
+.PHONY : src/fpconv.c.o
+
+src/fpconv.i: src/fpconv.c.i
+
+.PHONY : src/fpconv.i
+
+# target to preprocess a source file
+src/fpconv.c.i:
+	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/fpconv.c.i
+.PHONY : src/fpconv.c.i
+
+src/fpconv.s: src/fpconv.c.s
+
+.PHONY : src/fpconv.s
+
+# target to generate assembly for a file
+src/fpconv.c.s:
+	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/fpconv.c.s
+.PHONY : src/fpconv.c.s
 
 src/lapi.o: src/lapi.c.o
 
@@ -847,32 +874,32 @@ src/ltm.c.s:
 	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/ltm.c.s
 .PHONY : src/ltm.c.s
 
-src/lua.o: src/lua.c.o
+src/lua_bit.o: src/lua_bit.c.o
 
-.PHONY : src/lua.o
+.PHONY : src/lua_bit.o
 
 # target to build an object file
-src/lua.c.o:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lua.c.o
-.PHONY : src/lua.c.o
+src/lua_bit.c.o:
+	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lua_bit.c.o
+.PHONY : src/lua_bit.c.o
 
-src/lua.i: src/lua.c.i
+src/lua_bit.i: src/lua_bit.c.i
 
-.PHONY : src/lua.i
+.PHONY : src/lua_bit.i
 
 # target to preprocess a source file
-src/lua.c.i:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lua.c.i
-.PHONY : src/lua.c.i
+src/lua_bit.c.i:
+	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lua_bit.c.i
+.PHONY : src/lua_bit.c.i
 
-src/lua.s: src/lua.c.s
+src/lua_bit.s: src/lua_bit.c.s
 
-.PHONY : src/lua.s
+.PHONY : src/lua_bit.s
 
 # target to generate assembly for a file
-src/lua.c.s:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lua.c.s
-.PHONY : src/lua.c.s
+src/lua_bit.c.s:
+	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lua_bit.c.s
+.PHONY : src/lua_bit.c.s
 
 src/lua_cjson.o: src/lua_cjson.c.o
 
@@ -955,33 +982,6 @@ src/lua_struct.c.s:
 	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lua_struct.c.s
 .PHONY : src/lua_struct.c.s
 
-src/luac.o: src/luac.c.o
-
-.PHONY : src/luac.o
-
-# target to build an object file
-src/luac.c.o:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/luac.c.o
-.PHONY : src/luac.c.o
-
-src/luac.i: src/luac.c.i
-
-.PHONY : src/luac.i
-
-# target to preprocess a source file
-src/luac.c.i:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/luac.c.i
-.PHONY : src/luac.c.i
-
-src/luac.s: src/luac.c.s
-
-.PHONY : src/luac.s
-
-# target to generate assembly for a file
-src/luac.c.s:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/luac.c.s
-.PHONY : src/luac.c.s
-
 src/lundump.o: src/lundump.c.o
 
 .PHONY : src/lundump.o
@@ -1063,33 +1063,6 @@ src/lzio.c.s:
 	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/lzio.c.s
 .PHONY : src/lzio.c.s
 
-src/print.o: src/print.c.o
-
-.PHONY : src/print.o
-
-# target to build an object file
-src/print.c.o:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/print.c.o
-.PHONY : src/print.c.o
-
-src/print.i: src/print.c.i
-
-.PHONY : src/print.i
-
-# target to preprocess a source file
-src/print.c.i:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/print.c.i
-.PHONY : src/print.c.i
-
-src/print.s: src/print.c.s
-
-.PHONY : src/print.s
-
-# target to generate assembly for a file
-src/print.c.s:
-	cd /Users/vitah/Downloads/dev/vitah/redis-analyse/redis-3.2 && $(MAKE) $(MAKESILENT) -f deps/lua/CMakeFiles/lua.dir/build.make deps/lua/CMakeFiles/lua.dir/src/print.c.s
-.PHONY : src/print.c.s
-
 src/strbuf.o: src/strbuf.c.o
 
 .PHONY : src/strbuf.o
@@ -1126,6 +1099,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... lua"
+	@echo "... src/fpconv.o"
+	@echo "... src/fpconv.i"
+	@echo "... src/fpconv.s"
 	@echo "... src/lapi.o"
 	@echo "... src/lapi.i"
 	@echo "... src/lapi.s"
@@ -1204,9 +1180,9 @@ help:
 	@echo "... src/ltm.o"
 	@echo "... src/ltm.i"
 	@echo "... src/ltm.s"
-	@echo "... src/lua.o"
-	@echo "... src/lua.i"
-	@echo "... src/lua.s"
+	@echo "... src/lua_bit.o"
+	@echo "... src/lua_bit.i"
+	@echo "... src/lua_bit.s"
 	@echo "... src/lua_cjson.o"
 	@echo "... src/lua_cjson.i"
 	@echo "... src/lua_cjson.s"
@@ -1216,9 +1192,6 @@ help:
 	@echo "... src/lua_struct.o"
 	@echo "... src/lua_struct.i"
 	@echo "... src/lua_struct.s"
-	@echo "... src/luac.o"
-	@echo "... src/luac.i"
-	@echo "... src/luac.s"
 	@echo "... src/lundump.o"
 	@echo "... src/lundump.i"
 	@echo "... src/lundump.s"
@@ -1228,9 +1201,6 @@ help:
 	@echo "... src/lzio.o"
 	@echo "... src/lzio.i"
 	@echo "... src/lzio.s"
-	@echo "... src/print.o"
-	@echo "... src/print.i"
-	@echo "... src/print.s"
 	@echo "... src/strbuf.o"
 	@echo "... src/strbuf.i"
 	@echo "... src/strbuf.s"
