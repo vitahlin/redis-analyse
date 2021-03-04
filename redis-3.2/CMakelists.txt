@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-project(redis VERSION 3.0)
+project(redis3.2 VERSION 3.2)
 
 set(CMAKE_BUILD_TYPE "Debug")
 
@@ -27,6 +27,7 @@ set(SRC_SERVER_LIB
         src/cluster.c
         src/config.c
         src/crc64.c
+        src/crc16.c
         src/db.c
         src/debug.c
         src/dict.c
@@ -84,7 +85,7 @@ set(SRC_CLI
 
 
 set(EXECUTABLE_OUTPUT_PATH src)
-link_directories(deps/linenoise/ deps/lua/src deps/hiredis deps/geohash-int)
+link_directories(deps/linenoise/ deps/lua deps/hiredis deps/geohash-int)
 add_executable(redis-server ${SRC_SERVER})
 
 target_include_directories(redis-server
