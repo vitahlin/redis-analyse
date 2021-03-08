@@ -1401,6 +1401,8 @@ void initServerConfig(void) {
     server.configfile = NULL;
     server.hz = REDIS_DEFAULT_HZ;
     server.runid[REDIS_RUN_ID_SIZE] = '\0';
+
+    // 判断当前运行环境是32位还是64位
     server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
     server.port = REDIS_SERVERPORT;
     server.tcp_backlog = REDIS_TCP_BACKLOG;
@@ -3574,13 +3576,23 @@ int main(int argc, char **argv) {
 #ifdef INIT_SETPROCTITLE_REPLACEMENT
     spt_init(argc, argv);
 #endif
+    // 设置字符集
     setlocale(LC_COLLATE,"");
+
+    // 设置线程安全模式标记
     zmalloc_enable_thread_safeness();
+
+    // oom处理函数
     zmalloc_set_oom_handler(redisOutOfMemoryHandler);
+
     srand(time(NULL)^getpid());
     gettimeofday(&tv,NULL);
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
+
+    // 检查服务器是否以 Sentinel 模式启动
     server.sentinel_mode = checkForSentinelMode(argc,argv);
+
+    // 初始化server配置
     initServerConfig();
 
     /* We need to init sentinel right now as parsing the configuration file
@@ -3591,6 +3603,7 @@ int main(int argc, char **argv) {
         initSentinel();
     }
 
+    // 检查用户是否指定了配置文件或者配置
     if (argc >= 2) {
         int j = 1; /* First option to parse in argv[] */
         sds options = sdsempty();
@@ -3613,12 +3626,19 @@ int main(int argc, char **argv) {
         }
 
         /* First argument is the config file name? */
+        /**
+         * 如果第一参数不是以--开头，那么它应该是一个配置文件
+         */
         if (argv[j][0] != '-' || argv[j][1] != '-')
             configfile = argv[j++];
         /* All the other options are parsed and conceptually appended to the
          * configuration file. For instance --port 6380 will generate the
          * string "port 6380\n" to be parsed after the actual file name
          * is parsed, if any. */
+        /**
+         * 对用户给定的其余选项进行分析，并将分析所得的字符串追加稍后载入的配置文件的内容之后
+         * 比如 --port 6380 会被分析为 "port 6380\n"
+         */
         while(j != argc) {
             if (argv[j][0] == '-' && argv[j][1] == '-') {
                 /* Option name */
@@ -3640,26 +3660,48 @@ int main(int argc, char **argv) {
             exit(1);
         }
         if (configfile) server.configfile = getAbsolutePath(configfile);
+
+        // 重置保存条件
         resetServerSaveParams();
+
+        // 载入配置文件，options是之前分析的给定选项
         loadServerConfig(configfile,options);
         sdsfree(options);
     } else {
         redisLog(REDIS_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/%s.conf", argv[0], server.sentinel_mode ? "sentinel" : "redis");
     }
-    if (server.daemonize) daemonize();
+
+    // 将服务器设置为守护进程
+    if (server.daemonize)
+        daemonize();
+
+    // 创建并初始化服务器结构
     initServer();
+
+    // 如果服务器是守护进程，创建PID文件
     if (server.daemonize) createPidFile();
+
+    // 服务器进程设置名字
     redisSetProcTitle(argv[0]);
+
+    // 打印logo
     redisAsciiArt();
 
+    // 服务器不是以sentinel模式启动，执行以下if内容
     if (!server.sentinel_mode) {
         /* Things not needed when running in Sentinel mode. */
+        // 打印问候语
         redisLog(REDIS_WARNING,"Server started, Redis version " REDIS_VERSION);
     #ifdef __linux__
+        // 打印内存警告
         linuxMemoryWarnings();
     #endif
         checkTcpBacklogSettings();
+
+        // 从AOF或者RDB文件中载入数据
         loadDataFromDisk();
+
+        // 集群处理
         if (server.cluster_enabled) {
             if (verifyClusterConfigWithData() == REDIS_ERR) {
                 redisLog(REDIS_WARNING,
@@ -3668,8 +3710,12 @@ int main(int argc, char **argv) {
                 exit(1);
             }
         }
+
+        // 打印TCP端口
         if (server.ipfd_count > 0)
             redisLog(REDIS_NOTICE,"The server is now ready to accept connections on port %d", server.port);
+
+        // 打印本地socket端口
         if (server.sofd > 0)
             redisLog(REDIS_NOTICE,"The server is now ready to accept connections at %s", server.unixsocket);
     } else {
@@ -3677,12 +3723,16 @@ int main(int argc, char **argv) {
     }
 
     /* Warning the user about suspicious maxmemory setting. */
+    // 判断最大内存是不是符合配置
     if (server.maxmemory > 0 && server.maxmemory < 1024*1024) {
         redisLog(REDIS_WARNING,"WARNING: You specified a maxmemory value that is less than 1MB (current value is %llu bytes). Are you sure this is what you really want?", server.maxmemory);
     }
 
+    // 运行事件处理器，直到服务器关闭
     aeSetBeforeSleepProc(server.el,beforeSleep);
     aeMain(server.el);
+
+    // 服务器关闭，停止事件循环
     aeDeleteEventLoop(server.el);
     return 0;
 }
