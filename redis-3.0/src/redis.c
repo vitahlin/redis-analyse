@@ -1405,7 +1405,10 @@ void initServerConfig(void) {
     // 判断当前运行环境是32位还是64位
     server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
     server.port = REDIS_SERVERPORT;
+
+    // TCP连接中已完成队列(完成三次握手之后)的长度
     server.tcp_backlog = REDIS_TCP_BACKLOG;
+
     server.bindaddr_count = 0;
     server.unixsocket = NULL;
     server.unixsocketperm = REDIS_DEFAULT_UNIX_SOCKET_PERM;
@@ -3585,8 +3588,17 @@ int main(int argc, char **argv) {
     // oom处理函数
     zmalloc_set_oom_handler(redisOutOfMemoryHandler);
 
+    /**
+     * getpid()获取目前进程的进程识别码，许多程序利用取到的此值来建立临时文件
+     * ^异或运算符
+     * time()返回时间戳 秒
+     * srand设置随机数种子
+     */
     srand(time(NULL)^getpid());
+
     gettimeofday(&tv,NULL);
+
+    // 通过当前时间-秒和当前时间微秒和进程ID设置哈希随机种子
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
 
     // 检查服务器是否以 Sentinel 模式启动
