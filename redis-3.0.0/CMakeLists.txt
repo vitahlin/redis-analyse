@@ -69,7 +69,7 @@ set(SRC_SERVER src/redis.c
         )
 
 set(EXECUTABLE_OUTPUT_PATH src)
-link_directories(deps/linenoise deps/lua/src deps/hiredis deps/geohash-int)
+link_directories(deps/linenoise deps/lua/src deps/hiredis)
 add_executable(redis-server ${SRC_SERVER})
 
 target_include_directories(redis-server
@@ -82,6 +82,25 @@ target_link_libraries(redis-server
         PRIVATE dl
         PRIVATE m
         PRIVATE lua
+        PRIVATE linenoise
+        PRIVATE hiredis
+        )
+
+
+set(CLIENT_SRC src/redis-cli.c
+        src/anet.c src/sds.c src/adlist.c src/zmalloc.c
+        src/release.c src/anet.c src/ae.c src/crc64.c
+        )
+add_executable(redis-cli ${CLIENT_SRC})
+
+target_include_directories(redis-cli
+        PRIVATE ${REDIS_ROOT}/deps/linenoise
+        PRIVATE ${REDIS_ROOT}/deps/hiredis
+        PRIVATE ${REDIS_ROOT}/deps/lua/src
+        )
+target_link_libraries(redis-cli
+        PRIVATE pthread
+        PRIVATE m
         PRIVATE linenoise
         PRIVATE hiredis
         )
