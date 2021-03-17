@@ -3497,7 +3497,7 @@ static void sigShutdownHandler(int sig) {
      * the user really wanting to quit ASAP without waiting to persist
      * on disk. */
     /**
-     * ASAP=as soon as posible
+     * ASAP=as soon as possible
      * 第一次收到退出信号将shutdown_asap标记为1，这样再次收到退出信号时，直接退出
      */
     if (server.shutdown_asap && sig == SIGINT) {
