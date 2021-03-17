@@ -1752,6 +1752,14 @@ void resetServerStats(void) {
 void initServer(void) {
     int j;
 
+    /**
+     * SIGHUP 信号在用户终端连接(正常或非正常)结束时发出
+     *
+     * 在linux下写socket的程序的时候，如果尝试send到一个disconnected socket上，就会让底层抛出一个SIGPIPE信号。
+     * 这个信号的缺省处理方法是退出进程，大多数时候这都不是我们期望的。
+     *
+     * SIG_IGN表示忽略这两个信号。
+     */
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
     setupSignalHandlers();
@@ -3472,6 +3480,7 @@ void redisAsciiArt(void) {
 static void sigShutdownHandler(int sig) {
     char *msg;
 
+    // 根据接收到的信号打印不同的日志
     switch (sig) {
     case SIGINT:
         msg = "Received SIGINT scheduling shutdown...";
@@ -3487,6 +3496,10 @@ static void sigShutdownHandler(int sig) {
      * If we receive the signal the second time, we interpret this as
      * the user really wanting to quit ASAP without waiting to persist
      * on disk. */
+    /**
+     * ASAP=as soon as posible
+     * 第一次收到退出信号将shutdown_asap标记为1，这样再次收到退出信号时，直接退出
+     */
     if (server.shutdown_asap && sig == SIGINT) {
         redisLogFromHandler(REDIS_WARNING, "You insist... exiting now.");
         rdbRemoveTempFile(getpid());
@@ -3499,6 +3512,9 @@ static void sigShutdownHandler(int sig) {
     server.shutdown_asap = 1;
 }
 
+/**
+ * 设置默认的信号处理函数
+ */
 void setupSignalHandlers(void) {
     struct sigaction act;
 
@@ -3507,13 +3523,19 @@ void setupSignalHandlers(void) {
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
     act.sa_handler = sigShutdownHandler;
+
+    // SIGTERM 发送给本程序的终止请求信号
     sigaction(SIGTERM, &act, NULL);
+
+    // SIGINT 中断信号，如 ctrl-C，通常由用户生成
     sigaction(SIGINT, &act, NULL);
 
 #ifdef HAVE_BACKTRACE
     sigemptyset(&act.sa_mask);
     act.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;
     act.sa_sigaction = sigsegvHandler;
+
+    // 接收到段错误等致命信号时，先捕获该信号，然后执行自定义的信号处理函数
     sigaction(SIGSEGV, &act, NULL);
     sigaction(SIGBUS, &act, NULL);
     sigaction(SIGFPE, &act, NULL);
