@@ -1769,8 +1769,10 @@ void initServer(void) {
             server.syslog_facility);
     }
 
+    // 获取目前进程的进程识别码
     server.pid = getpid();
     server.current_client = NULL;
+
     server.clients = listCreate();
     server.clients_to_close = listCreate();
     server.slaves = listCreate();
