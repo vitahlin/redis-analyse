@@ -59,6 +59,9 @@ typedef void aeEventFinalizerProc(struct aeEventLoop *eventLoop, void *clientDat
 typedef void aeBeforeSleepProc(struct aeEventLoop *eventLoop);
 
 /* File event structure */
+/**
+ * 文件事件结构
+ */
 typedef struct aeFileEvent {
     int mask; /* one of AE_(READABLE|WRITABLE) */
     aeFileProc *rfileProc;
@@ -67,6 +70,9 @@ typedef struct aeFileEvent {
 } aeFileEvent;
 
 /* Time event structure */
+/**
+ * 定时器事件
+ */
 typedef struct aeTimeEvent {
     long long id; /* time event identifier. */
     long when_sec; /* seconds */

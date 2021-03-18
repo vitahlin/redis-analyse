@@ -1304,6 +1304,10 @@ void beforeSleep(struct aeEventLoop *eventLoop) {
 
 /* =========================== Server initialization ======================== */
 
+/**
+ * 创建一些shared对象保存在全局的shared变量中，对于不同的命令，可能会有相同的返回值（比如报错）。
+ * 这样在返回时就不必每次都去新增对象了，保存到内存中了。这个设计就是以Redis启动时多消耗一些时间为代价，换取运行的更小的延迟。
+ */
 void createSharedObjects(void) {
     int j;
 
@@ -1784,8 +1788,12 @@ void initServer(void) {
     server.get_ack_from_slaves = 0;
     server.clients_paused = 0;
 
+    // 创建一些常用的共享对象
     createSharedObjects();
+
     adjustOpenFilesLimit();
+
+    // 事件模型
     server.el = aeCreateEventLoop(server.maxclients+REDIS_EVENTLOOP_FDSET_INCR);
     server.db = zmalloc(sizeof(redisDb)*server.dbnum);
 
