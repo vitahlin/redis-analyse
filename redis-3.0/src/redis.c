@@ -1676,12 +1676,20 @@ void checkTcpBacklogSettings(void) {
  * impossible to bind, or no bind addresses were specified in the server
  * configuration but the function is not able to bind * for at least
  * one of the IPv4 or IPv6 protocols. */
+/**
+ * 监听端口
+ * @param port 监听的端口
+ * @param fds 套接字文件描述符数组，redis可以绑定多个监听地址，N个监听地址则数组长度就是N
+ * @param count
+ * @return
+ */
 int listenToPort(int port, int *fds, int *count) {
     int j;
 
     /* Force binding of 0.0.0.0 if no bind address is specified, always
      * entering the loop if j == 0. */
-    if (server.bindaddr_count == 0) server.bindaddr[0] = NULL;
+    if (server.bindaddr_count == 0)
+        server.bindaddr[0] = NULL;
     for (j = 0; j < server.bindaddr_count || j == 0; j++) {
         if (server.bindaddr[j] == NULL) {
             /* Bind * for both IPv6 and IPv4, we enter here only if
@@ -1719,6 +1727,8 @@ int listenToPort(int port, int *fds, int *count) {
             return REDIS_ERR;
         }
         anetNonBlock(NULL,fds[*count]);
+
+        // 统计监听数量
         (*count)++;
     }
     return REDIS_OK;
@@ -1793,13 +1803,18 @@ void initServer(void) {
 
     adjustOpenFilesLimit();
 
-    // 事件模型
+    /**
+     * maxclients代表用户配置的最大连接数
+     * REDIS_EVENTLOOP_FDSET_INCR给redis预留一些安全空间
+     * 创建事件相关结构体
+     */
     server.el = aeCreateEventLoop(server.maxclients+REDIS_EVENTLOOP_FDSET_INCR);
+
+    // 开发服务器信息
     server.db = zmalloc(sizeof(redisDb)*server.dbnum);
 
     /* Open the TCP listening socket for the user commands. */
-    if (server.port != 0 &&
-        listenToPort(server.port,server.ipfd,&server.ipfd_count) == REDIS_ERR)
+    if (server.port != 0 && listenToPort(server.port,server.ipfd,&server.ipfd_count) == REDIS_ERR)
         exit(1);
 
     /* Open the listening Unix domain socket. */
@@ -1815,12 +1830,14 @@ void initServer(void) {
     }
 
     /* Abort if there are no listening sockets at all. */
+    // socket监听数量为0，报错并退出
     if (server.ipfd_count == 0 && server.sofd < 0) {
         redisLog(REDIS_WARNING, "Configured to not listen anywhere, exiting.");
         exit(1);
     }
 
     /* Create the Redis databases, and initialize other internal state. */
+    // 创建服务器结构体信息
     for (j = 0; j < server.dbnum; j++) {
         server.db[j].dict = dictCreate(&dbDictType,NULL);
         server.db[j].expires = dictCreate(&keyptrDictType,NULL);

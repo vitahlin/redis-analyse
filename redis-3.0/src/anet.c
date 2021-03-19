@@ -58,6 +58,13 @@ static void anetSetError(char *err, const char *fmt, ...)
     va_end(ap);
 }
 
+/**
+ * 为fd设置阻塞标志位
+ * @param err
+ * @param fd
+ * @param non_block 为0时设置阻塞，否则设置为非阻塞
+ * @return
+ */
 int anetSetBlock(char *err, int fd, int non_block) {
     int flags;
 
@@ -418,6 +425,7 @@ int anetWrite(int fd, char *buf, int count)
 }
 
 static int anetListen(char *err, int s, struct sockaddr *sa, socklen_t len, int backlog) {
+    // 套接字地址和端口进行绑定
     if (bind(s,sa,len) == -1) {
         anetSetError(err, "bind: %s", strerror(errno));
         close(s);
@@ -442,29 +450,47 @@ static int anetV6Only(char *err, int s) {
     return ANET_OK;
 }
 
+/**
+ *
+ * @param err
+ * @param port
+ * @param bindaddr
+ * @param af
+ * @param backlog
+ * @return
+ */
 static int _anetTcpServer(char *err, int port, char *bindaddr, int af, int backlog)
 {
     int s, rv;
     char _port[6];  /* strlen("65535") */
+
+    // addrinfo结构主要在网络变成解析hostname时使用
     struct addrinfo hints, *servinfo, *p;
 
     snprintf(_port,6,"%d",port);
     memset(&hints,0,sizeof(hints));
+
     hints.ai_family = af;
-    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_socktype = SOCK_STREAM; // 有序、可靠、面向连接的双向字节流
     hints.ai_flags = AI_PASSIVE;    /* No effect if bindaddr != NULL */
 
+    // getaddrinfo将给定的字符串形式的地址转换成套接字能用的地址数据，结果存储在servinfo中
     if ((rv = getaddrinfo(bindaddr,_port,&hints,&servinfo)) != 0) {
         anetSetError(err, "%s", gai_strerror(rv));
         return ANET_ERR;
     }
+
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((s = socket(p->ai_family,p->ai_socktype,p->ai_protocol)) == -1)
             continue;
 
-        if (af == AF_INET6 && anetV6Only(err,s) == ANET_ERR) goto error;
-        if (anetSetReuseAddr(err,s) == ANET_ERR) goto error;
-        if (anetListen(err,s,p->ai_addr,p->ai_addrlen,backlog) == ANET_ERR) goto error;
+        if (af == AF_INET6 && anetV6Only(err,s) == ANET_ERR)
+            goto error;
+        if (anetSetReuseAddr(err,s) == ANET_ERR)
+            goto error;
+
+        if (anetListen(err,s,p->ai_addr,p->ai_addrlen,backlog) == ANET_ERR)
+            goto error;
         goto end;
     }
     if (p == NULL) {

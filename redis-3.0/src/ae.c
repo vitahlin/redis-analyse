@@ -60,24 +60,43 @@
     #endif
 #endif
 
+/**
+ * 创建eventLoop
+ * @param setsize 表示了 eventloop 可以监听的网络事件 fd 的个数（不包含超时事件），如果当前监听的 fd 个数超过了 setsize，eventloop 将不能继续注册。
+ * @return
+ */
 aeEventLoop *aeCreateEventLoop(int setsize) {
     aeEventLoop *eventLoop;
     int i;
 
-    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
+    // 分配空间，创建事件状态结构
+    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL)
+        goto err;
+
+    // 分配文件事件结构体数组
     eventLoop->events = zmalloc(sizeof(aeFileEvent)*setsize);
+
+    // 分配已触发事件结构体数组
     eventLoop->fired = zmalloc(sizeof(aeFiredEvent)*setsize);
-    if (eventLoop->events == NULL || eventLoop->fired == NULL) goto err;
+
+    if (eventLoop->events == NULL || eventLoop->fired == NULL)
+        goto err;
+
+    // 数组大小
     eventLoop->setsize = setsize;
+
+    // 初始化执行最近一次执行时间
     eventLoop->lastTime = time(NULL);
     eventLoop->timeEventHead = NULL;
     eventLoop->timeEventNextId = 0;
     eventLoop->stop = 0;
     eventLoop->maxfd = -1;
     eventLoop->beforesleep = NULL;
-    if (aeApiCreate(eventLoop) == -1) goto err;
+    if (aeApiCreate(eventLoop) == -1)
+        goto err;
     /* Events with mask == AE_NONE are not set. So let's initialize the
      * vector with it. */
+    // 创建一个连续的数组来存储事件信息
     for (i = 0; i < setsize; i++)
         eventLoop->events[i].mask = AE_NONE;
     return eventLoop;
