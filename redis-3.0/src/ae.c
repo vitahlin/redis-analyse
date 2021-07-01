@@ -96,7 +96,10 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
         goto err;
     /* Events with mask == AE_NONE are not set. So let's initialize the
      * vector with it. */
-    // 创建一个连续的数组来存储事件信息
+    /**
+     * 创建一个连续的数组来存储信息
+     * 值为AE_NONE，代表无事件
+     */
     for (i = 0; i < setsize; i++)
         eventLoop->events[i].mask = AE_NONE;
     return eventLoop;

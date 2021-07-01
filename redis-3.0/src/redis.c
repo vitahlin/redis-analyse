@@ -1805,7 +1805,7 @@ void initServer(void) {
 
     /**
      * maxclients代表用户配置的最大连接数
-     * REDIS_EVENTLOOP_FDSET_INCR给redis预留一些安全空间
+     * REDIS_EVENTLOOP_FDSET_INCR大小为128，给redis预留一些安全空间
      * 创建事件相关结构体
      */
     server.el = aeCreateEventLoop(server.maxclients+REDIS_EVENTLOOP_FDSET_INCR);

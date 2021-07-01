@@ -207,6 +207,15 @@ int anetSendTimeout(char *err, int fd, long long ms) {
  * If flags is set to ANET_IP_ONLY the function only resolves hostnames
  * that are actually already IPv4 or IPv6 addresses. This turns the function
  * into a validating / normalizing function. */
+/**
+ * 泛型方法，根据条件解析host主机名或IP地址
+ * @param err
+ * @param host
+ * @param ipbuf
+ * @param ipbuf_len
+ * @param flags
+ * @return
+ */
 int anetGenericResolve(char *err, char *host, char *ipbuf, size_t ipbuf_len,
                        int flags)
 {
@@ -218,10 +227,13 @@ int anetGenericResolve(char *err, char *host, char *ipbuf, size_t ipbuf_len,
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;  /* specify socktype to avoid dups */
 
+    // 解析hostName
     if ((rv = getaddrinfo(host, NULL, &hints, &info)) != 0) {
         anetSetError(err, "%s", gai_strerror(rv));
         return ANET_ERR;
     }
+
+    // 根据类型解析ipv4或者ipv6的地址
     if (info->ai_family == AF_INET) {
         struct sockaddr_in *sa = (struct sockaddr_in *)info->ai_addr;
         inet_ntop(AF_INET, &(sa->sin_addr), ipbuf, ipbuf_len);
@@ -481,6 +493,7 @@ static int _anetTcpServer(char *err, int port, char *bindaddr, int af, int backl
     }
 
     for (p = servinfo; p != NULL; p = p->ai_next) {
+        // 创建服务端套接字
         if ((s = socket(p->ai_family,p->ai_socktype,p->ai_protocol)) == -1)
             continue;
 
