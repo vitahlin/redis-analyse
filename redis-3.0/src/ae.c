@@ -61,7 +61,7 @@
 #endif
 
 /**
- * 创建eventLoop
+ * 创建一个事件管理器，主要是初始化aeEventLoop的各个属性值
  * @param setsize 表示了 eventloop 可以监听的网络事件 fd 的个数（不包含超时事件），如果当前监听的 fd 个数超过了 setsize，eventloop 将不能继续注册。
  * @return
  */
@@ -69,14 +69,14 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
     aeEventLoop *eventLoop;
     int i;
 
-    // 分配空间，创建事件状态结构
+    // 创建aeEventLoop对象
     if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL)
         goto err;
 
-    // 分配文件事件结构体数组
+    // 创建未就绪事件表
     eventLoop->events = zmalloc(sizeof(aeFileEvent)*setsize);
 
-    // 分配已触发事件结构体数组
+    // 创建已就绪事件表
     eventLoop->fired = zmalloc(sizeof(aeFiredEvent)*setsize);
 
     if (eventLoop->events == NULL || eventLoop->fired == NULL)
@@ -87,19 +87,20 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
 
     // 初始化执行最近一次执行时间
     eventLoop->lastTime = time(NULL);
+
+    // 初始化时间事件结构
     eventLoop->timeEventHead = NULL;
     eventLoop->timeEventNextId = 0;
     eventLoop->stop = 0;
     eventLoop->maxfd = -1;
     eventLoop->beforesleep = NULL;
+
+    // 将多路复用IO与事件管理器关联起来
     if (aeApiCreate(eventLoop) == -1)
         goto err;
     /* Events with mask == AE_NONE are not set. So let's initialize the
      * vector with it. */
-    /**
-     * 创建一个连续的数组来存储信息
-     * 值为AE_NONE，代表无事件
-     */
+    // 初始化监听事件
     for (i = 0; i < setsize; i++)
         eventLoop->events[i].mask = AE_NONE;
     return eventLoop;
@@ -472,8 +473,11 @@ int aeWait(int fd, int mask, long long milliseconds) {
 void aeMain(aeEventLoop *eventLoop) {
     eventLoop->stop = 0;
     while (!eventLoop->stop) {
+        // 如果，有需要在时间处理前执行的函数，那么运行它
         if (eventLoop->beforesleep != NULL)
             eventLoop->beforesleep(eventLoop);
+
+        // 开始处理事件
         aeProcessEvents(eventLoop, AE_ALL_EVENTS);
     }
 }

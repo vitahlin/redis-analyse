@@ -63,13 +63,16 @@ typedef void aeBeforeSleepProc(struct aeEventLoop *eventLoop);
  * 文件事件结构体
  */
 typedef struct aeFileEvent {
+    // 监听事件类型掩码，可以理解为事件的类型
     int mask; /* one of AE_(READABLE|WRITABLE) */
 
-    // 回调函数指针
+    // 读事件处理器
     aeFileProc *rfileProc;
+
+    // 写事件处理器
     aeFileProc *wfileProc;
 
-    // 一般指向redisClient指针
+    // 多路复用库的私有数据
     void *clientData;
 } aeFileEvent;
 
@@ -106,7 +109,7 @@ typedef struct aeFiredEvent {
 
 /* State of an event based program */
 /**
- * 事件循环结构维护I/O事件表，定时事件表和触发事件表
+ * redis事件驱动的核心，管理着文件事件表和时间事件表，不断地循环处理着就绪的文件事件和到期的时间事件
  */
 typedef struct aeEventLoop {
     int maxfd;   /* highest file descriptor currently registered */
