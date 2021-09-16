@@ -1814,10 +1814,12 @@ void initServer(void) {
     server.db = zmalloc(sizeof(redisDb) * server.dbnum);
 
     /* Open the TCP listening socket for the user commands. */
+    // 打开TCP监听端口
     if (server.port != 0 && listenToPort(server.port, server.ipfd, &server.ipfd_count) == REDIS_ERR)
         exit(1);
 
     /* Open the listening Unix domain socket. */
+    // 打开unix本地端口，如果指定采用 Unix Domain socket，默认不采用
     if (server.unixsocket != NULL) {
         unlink(server.unixsocket); /* don't care if this fails */
         server.sofd = anetUnixServer(server.neterr, server.unixsocket, server.unixsocketperm, server.tcp_backlog);
@@ -1882,11 +1884,14 @@ void initServer(void) {
 
     /* Create an event handler for accepting new connections in TCP and Unix
      * domain sockets. */
+    // 为TCP连接关联连接应答处理器（accept）
     for (j = 0; j < server.ipfd_count; j++) {
         if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE, acceptTcpHandler, NULL) == AE_ERR) {
             redisPanic("Unrecoverable error creating server.ipfd file event.");
         }
     }
+
+    // 为 Unix Socket 关联应答处理器
     if (server.sofd > 0
         && aeCreateFileEvent(server.el, server.sofd, AE_READABLE, acceptUnixHandler, NULL) == AE_ERR)
         redisPanic("Unrecoverable error creating server.sofd file event.");
