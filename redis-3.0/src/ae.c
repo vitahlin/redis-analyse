@@ -100,7 +100,7 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
         goto err;
     /* Events with mask == AE_NONE are not set. So let's initialize the
      * vector with it. */
-    // 初始化监听事件
+    // 初始化监听事件，一开始既不可读也不可写
     for (i = 0; i < setsize; i++)
         eventLoop->events[i].mask = AE_NONE;
     return eventLoop;
@@ -155,20 +155,40 @@ void aeStop(aeEventLoop *eventLoop) {
     eventLoop->stop = 1;
 }
 
+/**
+ * 调用该函数针对不同的套接字的读写事件注册对应的文件事件
+ * 主要做了三件事情：
+ *  - 以fd为索引，在events未就绪事件表中找到对应事件
+ *  - 调用aeApiAddEvent函数，该事件注册到具体的I/O多路复用中
+ *  - 填充事件的回调、参数、事件类型等参数
+ *
+ * @param eventLoop
+ * @param fd 具体的套接字
+ * @param mask
+ * @param proc fa产生事件时，具体的处理函数
+ * @param clientData 回调处理函数时需要传入的数据
+ * @return
+ */
 int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
-        aeFileProc *proc, void *clientData)
-{
+                      aeFileProc *proc, void *clientData) {
     if (fd >= eventLoop->setsize) {
         errno = ERANGE;
         return AE_ERR;
     }
+
+    // 取出fd对应的文件事件结构，fd代表具体的socket套接字
     aeFileEvent *fe = &eventLoop->events[fd];
 
+    // 监听指定fd的指定事件
     if (aeApiAddEvent(eventLoop, fd, mask) == -1)
         return AE_ERR;
+
+    // 设置文件类型，以及事件的处理器
     fe->mask |= mask;
     if (mask & AE_READABLE) fe->rfileProc = proc;
     if (mask & AE_WRITABLE) fe->wfileProc = proc;
+
+    // 私有数据
     fe->clientData = clientData;
     if (fd > eventLoop->maxfd)
         eventLoop->maxfd = fd;
@@ -420,6 +440,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             }
         }
 
+        // aeApiPoll等待epoll_wait返回可用fd
         numevents = aeApiPoll(eventLoop, tvp);
         for (j = 0; j < numevents; j++) {
             aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];

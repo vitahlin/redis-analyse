@@ -654,20 +654,24 @@ struct redisServer {
     dict *commands;             /* Command table */
     dict *orig_commands;        /* Command table before command renaming. */
     aeEventLoop *el;
-    unsigned lruclock:REDIS_LRU_BITS; /* Clock for LRU eviction */
+    unsigned lruclock: REDIS_LRU_BITS; /* Clock for LRU eviction */
     int shutdown_asap;          /* SHUTDOWN needed ASAP */
     int activerehashing;        /* Incremental rehash in serverCron() */
     char *requirepass;          /* Pass for AUTH command, or NULL */
     char *pidfile;              /* PID file path */
     int arch_bits;              /* 32 or 64 depending on sizeof(long) */
     int cronloops;              /* Number of times the cron function run */
-    char runid[REDIS_RUN_ID_SIZE+1];  /* ID always different at every exec. */
+    char runid[REDIS_RUN_ID_SIZE + 1];  /* ID always different at every exec. */
     int sentinel_mode;          /* True if this instance is a Sentinel. */
     /* Networking */
     int port;                   /* TCP listening port */
     int tcp_backlog;            /* TCP listen() backlog */
     char *bindaddr[REDIS_BINDADDR_MAX]; /* Addresses we should bind to */
     int bindaddr_count;         /* Number of addresses in server.bindaddr[] */
+
+    /**
+     * 对于redis，如果客户端和服务端在同一台机器上，可以使用 unix socket，不需要走TCP监听网络端口，效率会大大提示
+     */
     char *unixsocket;           /* UNIX socket path */
     mode_t unixsocketperm;      /* UNIX socket permission */
     int ipfd[REDIS_BINDADDR_MAX]; /* TCP socket file descriptors */

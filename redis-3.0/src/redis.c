@@ -1808,20 +1808,19 @@ void initServer(void) {
      * REDIS_EVENTLOOP_FDSET_INCR大小为128，给redis预留一些安全空间
      * 创建事件相关结构体
      */
-    server.el = aeCreateEventLoop(server.maxclients+REDIS_EVENTLOOP_FDSET_INCR);
+    server.el = aeCreateEventLoop(server.maxclients + REDIS_EVENTLOOP_FDSET_INCR);
 
     // 开发服务器信息
-    server.db = zmalloc(sizeof(redisDb)*server.dbnum);
+    server.db = zmalloc(sizeof(redisDb) * server.dbnum);
 
     /* Open the TCP listening socket for the user commands. */
-    if (server.port != 0 && listenToPort(server.port,server.ipfd,&server.ipfd_count) == REDIS_ERR)
+    if (server.port != 0 && listenToPort(server.port, server.ipfd, &server.ipfd_count) == REDIS_ERR)
         exit(1);
 
     /* Open the listening Unix domain socket. */
     if (server.unixsocket != NULL) {
         unlink(server.unixsocket); /* don't care if this fails */
-        server.sofd = anetUnixServer(server.neterr,server.unixsocket,
-            server.unixsocketperm, server.tcp_backlog);
+        server.sofd = anetUnixServer(server.neterr, server.unixsocket, server.unixsocketperm, server.tcp_backlog);
         if (server.sofd == ANET_ERR) {
             redisLog(REDIS_WARNING, "Opening Unix socket: %s", server.neterr);
             exit(1);
@@ -1884,23 +1883,21 @@ void initServer(void) {
     /* Create an event handler for accepting new connections in TCP and Unix
      * domain sockets. */
     for (j = 0; j < server.ipfd_count; j++) {
-        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
-            acceptTcpHandler,NULL) == AE_ERR)
-            {
-                redisPanic(
-                    "Unrecoverable error creating server.ipfd file event.");
-            }
+        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE, acceptTcpHandler, NULL) == AE_ERR) {
+            redisPanic("Unrecoverable error creating server.ipfd file event.");
+        }
     }
-    if (server.sofd > 0 && aeCreateFileEvent(server.el,server.sofd,AE_READABLE,
-        acceptUnixHandler,NULL) == AE_ERR) redisPanic("Unrecoverable error creating server.sofd file event.");
+    if (server.sofd > 0
+        && aeCreateFileEvent(server.el, server.sofd, AE_READABLE, acceptUnixHandler, NULL) == AE_ERR)
+        redisPanic("Unrecoverable error creating server.sofd file event.");
 
     /* Open the AOF file if needed. */
     if (server.aof_state == REDIS_AOF_ON) {
         server.aof_fd = open(server.aof_filename,
-                               O_WRONLY|O_APPEND|O_CREAT,0644);
+                             O_WRONLY | O_APPEND | O_CREAT, 0644);
         if (server.aof_fd == -1) {
             redisLog(REDIS_WARNING, "Can't open the append-only file: %s",
-                strerror(errno));
+                     strerror(errno));
             exit(1);
         }
     }

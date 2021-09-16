@@ -60,7 +60,7 @@ typedef void aeBeforeSleepProc(struct aeEventLoop *eventLoop);
 
 /* File event structure */
 /**
- * 文件事件结构体
+ * 文件事件结构体，对于每一个具体的事件，都有读处理函数和写处理函数
  */
 typedef struct aeFileEvent {
     // 监听事件类型掩码，可以理解为事件的类型
