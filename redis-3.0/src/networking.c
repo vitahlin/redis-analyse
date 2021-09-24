@@ -62,6 +62,7 @@ int listMatchObjects(void *a, void *b) {
 }
 
 redisClient *createClient(int fd) {
+    printf("create client fd=%d\n", fd);
     redisClient *c = zmalloc(sizeof(redisClient));
 
     /* passing -1 as fd it is possible to create a non connected client.

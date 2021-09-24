@@ -1677,10 +1677,10 @@ void checkTcpBacklogSettings(void) {
  * configuration but the function is not able to bind * for at least
  * one of the IPv4 or IPv6 protocols. */
 /**
- * 监听端口
+ * 监听端口 底层调用listen函数
  * @param port 监听的端口
  * @param fds 套接字文件描述符数组，redis可以绑定多个监听地址，N个监听地址则数组长度就是N
- * @param count
+ * @param count 对应的server.ipfd_count
  * @return
  */
 int listenToPort(int port, int *fds, int *count) {
@@ -1697,13 +1697,15 @@ int listenToPort(int port, int *fds, int *count) {
             fds[*count] = anetTcp6Server(server.neterr,port,NULL,
                 server.tcp_backlog);
             if (fds[*count] != ANET_ERR) {
-                anetNonBlock(NULL,fds[*count]);
+                anetNonBlock(NULL, fds[*count]);
+                printf("anetTcp6Server add server.ipfd_count\n");
                 (*count)++;
             }
             fds[*count] = anetTcpServer(server.neterr,port,NULL,
                 server.tcp_backlog);
             if (fds[*count] != ANET_ERR) {
-                anetNonBlock(NULL,fds[*count]);
+                anetNonBlock(NULL, fds[*count]);
+                printf("anetTcpServer add server.ipfd_count\n");
                 (*count)++;
             }
             /* Exit the loop if we were able to bind * on IPv4 or IPv6,
@@ -1814,7 +1816,7 @@ void initServer(void) {
     server.db = zmalloc(sizeof(redisDb) * server.dbnum);
 
     /* Open the TCP listening socket for the user commands. */
-    // 打开TCP监听端口
+    // 打开TCP监听端口，底层调用listen函数
     if (server.port != 0 && listenToPort(server.port, server.ipfd, &server.ipfd_count) == REDIS_ERR)
         exit(1);
 
@@ -1877,7 +1879,7 @@ void initServer(void) {
 
     /* Create the serverCron() time event, that's our main way to process
      * background operations. */
-    if(aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
+    if (aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
         redisPanic("Can't create the serverCron time event.");
         exit(1);
     }
@@ -1885,11 +1887,14 @@ void initServer(void) {
     /* Create an event handler for accepting new connections in TCP and Unix
      * domain sockets. */
     // 为TCP连接关联连接应答处理器（accept）
+    printf("server.ipfd_count=%d\n", server.ipfd_count);
     for (j = 0; j < server.ipfd_count; j++) {
+        printf("server.ipfd=%d\n", server.ipfd[j]);
         if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE, acceptTcpHandler, NULL) == AE_ERR) {
             redisPanic("Unrecoverable error creating server.ipfd file event.");
         }
     }
+    printf("aeCreateFileEvent finish\n");
 
     // 为 Unix Socket 关联应答处理器
     if (server.sofd > 0

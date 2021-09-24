@@ -190,8 +190,10 @@ int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
 
     // 私有数据
     fe->clientData = clientData;
-    if (fd > eventLoop->maxfd)
+    if (fd > eventLoop->maxfd) {
         eventLoop->maxfd = fd;
+        printf("change eventloop maxfd=%d\n", fd);
+    }
     return AE_OK;
 }
 

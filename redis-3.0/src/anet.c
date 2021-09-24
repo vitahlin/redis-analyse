@@ -463,7 +463,7 @@ static int anetV6Only(char *err, int s) {
 }
 
 /**
- *
+ * socket -> bind -> listen 都在这个函数里完成
  * @param err
  * @param port
  * @param bindaddr
