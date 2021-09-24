@@ -440,7 +440,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             }
         }
 
-        // aeApiPoll等待epoll_wait返回可用fd
+        // aeApiPoll等待epoll_wait返回可用fd，即从epoll中获取关注的事件
         numevents = aeApiPoll(eventLoop, tvp);
         for (j = 0; j < numevents; j++) {
             aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
@@ -448,16 +448,20 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             int fd = eventLoop->fired[j].fd;
             int rfired = 0;
 
-	    /* note the fe->mask & mask & ... code: maybe an already processed
-             * event removed an element that fired and we still didn't
-             * processed, so we check if the event is still valid. */
+            /* note the fe->mask & mask & ... code: maybe an already processed
+                 * event removed an element that fired and we still didn't
+                 * processed, so we check if the event is still valid. */
+            // 读事件
             if (fe->mask & mask & AE_READABLE) {
+                // rfired=1 确保读/写事件只能执行其中一个
                 rfired = 1;
-                fe->rfileProc(eventLoop,fd,fe->clientData,mask);
+                fe->rfileProc(eventLoop, fd, fe->clientData, mask);
             }
+
+            // 写事件
             if (fe->mask & mask & AE_WRITABLE) {
                 if (!rfired || fe->wfileProc != fe->rfileProc)
-                    fe->wfileProc(eventLoop,fd,fe->clientData,mask);
+                    fe->wfileProc(eventLoop, fd, fe->clientData, mask);
             }
             processed++;
         }

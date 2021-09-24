@@ -2167,6 +2167,13 @@ void call(redisClient *c, int flags) {
  * If 1 is returned the client is still alive and valid and
  * other operations can be performed by the caller. Otherwise
  * if 0 is returned the client was destroyed (i.e. after QUIT). */
+/**
+ * 调用lookupCommand方法获得对应的redisCommand
+ * 接着检测当前redis是否可以执行该命令
+ * 最后调用call方法真正执行命令
+ * @param c
+ * @return
+ */
 int processCommand(redisClient *c) {
     /* The QUIT command is handled separately. Normal command procs will
      * go through checking for replication and QUIT will cause trouble
@@ -2183,20 +2190,19 @@ int processCommand(redisClient *c) {
     c->cmd = c->lastcmd = lookupCommand(c->argv[0]->ptr);
     if (!c->cmd) {
         flagTransaction(c);
-        addReplyErrorFormat(c,"unknown command '%s'",
-            (char*)c->argv[0]->ptr);
+        addReplyErrorFormat(c, "unknown command '%s'",
+                            (char*)c->argv[0]->ptr);
         return REDIS_OK;
     } else if ((c->cmd->arity > 0 && c->cmd->arity != c->argc) ||
-               (c->argc < -c->cmd->arity)) {
+            (c->argc < -c->cmd->arity)) {
         flagTransaction(c);
-        addReplyErrorFormat(c,"wrong number of arguments for '%s' command",
-            c->cmd->name);
+        addReplyErrorFormat(c, "wrong number of arguments for '%s' command",
+                            c->cmd->name);
         return REDIS_OK;
     }
 
     /* Check if the user is authenticated */
-    if (server.requirepass && !c->authenticated && c->cmd->proc != authCommand)
-    {
+    if (server.requirepass && !c->authenticated && c->cmd->proc != authCommand) {
         flagTransaction(c);
         addReply(c,shared.noautherr);
         return REDIS_OK;
@@ -2207,11 +2213,10 @@ int processCommand(redisClient *c) {
      * 1) The sender of this command is our master.
      * 2) The command has no key arguments. */
     if (server.cluster_enabled &&
-        !(c->flags & REDIS_MASTER) &&
-        !(c->flags & REDIS_LUA_CLIENT &&
-          server.lua_caller->flags & REDIS_MASTER) &&
-        !(c->cmd->getkeys_proc == NULL && c->cmd->firstkey == 0))
-    {
+            !(c->flags & REDIS_MASTER) &&
+            !(c->flags & REDIS_LUA_CLIENT &&
+                    server.lua_caller->flags & REDIS_MASTER) &&
+            !(c->cmd->getkeys_proc == NULL && c->cmd->firstkey == 0)) {
         int hashslot;
 
         if (server.cluster->state != REDIS_CLUSTER_OK) {
@@ -2246,32 +2251,30 @@ int processCommand(redisClient *c) {
     /* Don't accept write commands if there are problems persisting on disk
      * and if this is a master instance. */
     if (((server.stop_writes_on_bgsave_err &&
-          server.saveparamslen > 0 &&
-          server.lastbgsave_status == REDIS_ERR) ||
-          server.aof_last_write_status == REDIS_ERR) &&
+            server.saveparamslen > 0 &&
+            server.lastbgsave_status == REDIS_ERR) ||
+         server.aof_last_write_status == REDIS_ERR) &&
         server.masterhost == NULL &&
         (c->cmd->flags & REDIS_CMD_WRITE ||
-         c->cmd->proc == pingCommand))
-    {
+                c->cmd->proc == pingCommand)) {
         flagTransaction(c);
         if (server.aof_last_write_status == REDIS_OK)
             addReply(c, shared.bgsaveerr);
         else
             addReplySds(c,
-                sdscatprintf(sdsempty(),
-                "-MISCONF Errors writing to the AOF file: %s\r\n",
-                strerror(server.aof_last_write_errno)));
+                        sdscatprintf(sdsempty(),
+                                     "-MISCONF Errors writing to the AOF file: %s\r\n",
+                                     strerror(server.aof_last_write_errno)));
         return REDIS_OK;
     }
 
     /* Don't accept write commands if there are not enough good slaves and
      * user configured the min-slaves-to-write option. */
     if (server.masterhost == NULL &&
-        server.repl_min_slaves_to_write &&
-        server.repl_min_slaves_max_lag &&
-        c->cmd->flags & REDIS_CMD_WRITE &&
-        server.repl_good_slaves_count < server.repl_min_slaves_to_write)
-    {
+            server.repl_min_slaves_to_write &&
+            server.repl_min_slaves_max_lag &&
+            c->cmd->flags & REDIS_CMD_WRITE &&
+            server.repl_good_slaves_count < server.repl_min_slaves_to_write) {
         flagTransaction(c);
         addReply(c, shared.noreplicaserr);
         return REDIS_OK;
@@ -2280,20 +2283,19 @@ int processCommand(redisClient *c) {
     /* Don't accept write commands if this is a read only slave. But
      * accept write commands if this is our master. */
     if (server.masterhost && server.repl_slave_ro &&
-        !(c->flags & REDIS_MASTER) &&
-        c->cmd->flags & REDIS_CMD_WRITE)
-    {
+            !(c->flags & REDIS_MASTER) &&
+            c->cmd->flags & REDIS_CMD_WRITE) {
         addReply(c, shared.roslaveerr);
         return REDIS_OK;
     }
 
     /* Only allow SUBSCRIBE and UNSUBSCRIBE in the context of Pub/Sub */
     if (c->flags & REDIS_PUBSUB &&
-        c->cmd->proc != pingCommand &&
-        c->cmd->proc != subscribeCommand &&
-        c->cmd->proc != unsubscribeCommand &&
-        c->cmd->proc != psubscribeCommand &&
-        c->cmd->proc != punsubscribeCommand) {
+            c->cmd->proc != pingCommand &&
+            c->cmd->proc != subscribeCommand &&
+            c->cmd->proc != unsubscribeCommand &&
+            c->cmd->proc != psubscribeCommand &&
+            c->cmd->proc != punsubscribeCommand) {
         addReplyError(c,"only (P)SUBSCRIBE / (P)UNSUBSCRIBE / QUIT allowed in this context");
         return REDIS_OK;
     }
@@ -2301,9 +2303,8 @@ int processCommand(redisClient *c) {
     /* Only allow INFO and SLAVEOF when slave-serve-stale-data is no and
      * we are a slave with a broken link with master. */
     if (server.masterhost && server.repl_state != REDIS_REPL_CONNECTED &&
-        server.repl_serve_stale_data == 0 &&
-        !(c->cmd->flags & REDIS_CMD_STALE))
-    {
+            server.repl_serve_stale_data == 0 &&
+            !(c->cmd->flags & REDIS_CMD_STALE)) {
         flagTransaction(c);
         addReply(c, shared.masterdownerr);
         return REDIS_OK;
@@ -2318,15 +2319,14 @@ int processCommand(redisClient *c) {
 
     /* Lua script too slow? Only allow a limited number of commands. */
     if (server.lua_timedout &&
-          c->cmd->proc != authCommand &&
-          c->cmd->proc != replconfCommand &&
-        !(c->cmd->proc == shutdownCommand &&
-          c->argc == 2 &&
-          tolower(((char*)c->argv[1]->ptr)[0]) == 'n') &&
-        !(c->cmd->proc == scriptCommand &&
-          c->argc == 2 &&
-          tolower(((char*)c->argv[1]->ptr)[0]) == 'k'))
-    {
+            c->cmd->proc != authCommand &&
+            c->cmd->proc != replconfCommand &&
+            !(c->cmd->proc == shutdownCommand &&
+                    c->argc == 2 &&
+                    tolower(((char*)c->argv[1]->ptr)[0]) == 'n') &&
+            !(c->cmd->proc == scriptCommand &&
+                    c->argc == 2 &&
+                    tolower(((char*)c->argv[1]->ptr)[0]) == 'k')) {
         flagTransaction(c);
         addReply(c, shared.slowscripterr);
         return REDIS_OK;
@@ -2334,9 +2334,8 @@ int processCommand(redisClient *c) {
 
     /* Exec the command */
     if (c->flags & REDIS_MULTI &&
-        c->cmd->proc != execCommand && c->cmd->proc != discardCommand &&
-        c->cmd->proc != multiCommand && c->cmd->proc != watchCommand)
-    {
+            c->cmd->proc != execCommand && c->cmd->proc != discardCommand &&
+            c->cmd->proc != multiCommand && c->cmd->proc != watchCommand) {
         queueMultiCommand(c);
         addReply(c,shared.queued);
     } else {

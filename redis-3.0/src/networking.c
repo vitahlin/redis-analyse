@@ -69,24 +69,32 @@ redisClient *createClient(int fd) {
      * in the context of a client. When commands are executed in other
      * contexts (for instance a Lua script) we need a non connected client. */
     if (fd != -1) {
-        anetNonBlock(NULL,fd);
-        anetEnableTcpNoDelay(NULL,fd);
+        anetNonBlock(NULL, fd);
+        anetEnableTcpNoDelay(NULL, fd);
         if (server.tcpkeepalive)
-            anetKeepAlive(NULL,fd,server.tcpkeepalive);
-        if (aeCreateFileEvent(server.el,fd,AE_READABLE,
-            readQueryFromClient, c) == AE_ERR)
-        {
+            anetKeepAlive(NULL, fd, server.tcpkeepalive);
+
+        /**
+         * 向eventloop中注册了readQueryFromClient
+         * readQueryFromClient 的作用就是从 client 中读取客户端的查询缓冲区内容
+         * 绑定读事件到 loop，开始接收命令请求
+         */
+        if (aeCreateFileEvent(server.el, fd, AE_READABLE,
+                              readQueryFromClient, c) == AE_ERR) {
             close(fd);
             zfree(c);
             return NULL;
         }
     }
 
-    selectDb(c,0);
+    // 默认选择数据库
+    selectDb(c, 0);
     c->id = server.next_client_id++;
     c->fd = fd;
     c->name = NULL;
     c->bufpos = 0;
+
+    // 输入缓冲区
     c->querybuf = sdsempty();
     c->querybuf_peak = 0;
     c->reqtype = 0;
@@ -582,11 +590,12 @@ void copyClientOutputBuffer(redisClient *dst, redisClient *src) {
 
 #define MAX_ACCEPTS_PER_CALL 1000
 static void acceptCommonHandler(int fd, int flags) {
+    // 创建一个新的客户端，代表着连接到redis的客户端，每个客户端有各自的输入缓冲区和输出缓存区
     redisClient *c;
     if ((c = createClient(fd)) == NULL) {
         redisLog(REDIS_WARNING,
-            "Error registering fd event for the new client: %s (fd=%d)",
-            strerror(errno),fd);
+                 "Error registering fd event for the new client: %s (fd=%d)",
+                 strerror(errno), fd);
         close(fd); /* May be already closed, just ignore errors */
         return;
     }
@@ -617,15 +626,18 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     REDIS_NOTUSED(privdata);
 
     while(max--) {
+        // 底层调用socket的accept方法
         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
                 redisLog(REDIS_WARNING,
-                    "Accepting client connection: %s", server.neterr);
+                         "Accepting client connection: %s", server.neterr);
             return;
         }
-        redisLog(REDIS_VERBOSE,"Accepted %s:%d", cip, cport);
-        acceptCommonHandler(cfd,0);
+        redisLog(REDIS_VERBOSE, "Accepted %s:%d", cip, cport);
+
+        // 建立socket后的处理
+        acceptCommonHandler(cfd, 0);
     }
 }
 
@@ -1122,6 +1134,10 @@ int processMultibulkBuffer(redisClient *c) {
     return REDIS_ERR;
 }
 
+/**
+ * 将输入缓冲区中的数据解析成对应的命令
+ * @param c
+ */
 void processInputBuffer(redisClient *c) {
     /* Keep processing while there is something in the input buffer */
     while(sdslen(c->querybuf)) {
