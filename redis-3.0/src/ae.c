@@ -442,8 +442,11 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             }
         }
 
+        // 阻塞等待文件事件产生
         // aeApiPoll等待epoll_wait返回可用fd，即从epoll中获取关注的事件
         numevents = aeApiPoll(eventLoop, tvp);
+
+//        printf("event num=%d\n", numevents);
         for (j = 0; j < numevents; j++) {
             aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
             int mask = eventLoop->fired[j].mask;

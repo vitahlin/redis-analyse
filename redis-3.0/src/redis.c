@@ -1889,7 +1889,6 @@ void initServer(void) {
     // 为TCP连接关联连接应答处理器（accept）
     printf("server.ipfd_count=%d\n", server.ipfd_count);
     for (j = 0; j < server.ipfd_count; j++) {
-        printf("server.ipfd=%d\n", server.ipfd[j]);
         if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE, acceptTcpHandler, NULL) == AE_ERR) {
             redisPanic("Unrecoverable error creating server.ipfd file event.");
         }

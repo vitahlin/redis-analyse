@@ -79,8 +79,9 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
     struct epoll_event ee;
     /* If the fd was already monitored for some event, we need a MOD
      * operation. Otherwise we need an ADD operation. */
+    /* 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。如果已经关联了某个/某些事件，那么这是一个 MOD 操作。 */
     int op = eventLoop->events[fd].mask == AE_NONE ?
-            EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+             EPOLL_CTL_ADD : EPOLL_CTL_MOD;
 
     ee.events = 0;
     mask |= eventLoop->events[fd].mask; /* Merge old events */
@@ -88,7 +89,9 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
     if (mask & AE_WRITABLE) ee.events |= EPOLLOUT;
     ee.data.u64 = 0; /* avoid valgrind warning */
     ee.data.fd = fd;
-    if (epoll_ctl(state->epfd,op,fd,&ee) == -1) return -1;
+
+    // 调用epoll_ctl系统调用，将事件加到epoll中
+    if (epoll_ctl(state->epfd, op, fd, &ee) == -1) return -1;
     return 0;
 }
 
@@ -115,15 +118,18 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
     aeApiState *state = eventLoop->apidata;
     int retval, numevents = 0;
 
-    retval = epoll_wait(state->epfd,state->events,eventLoop->setsize,
-            tvp ? (tvp->tv_sec*1000 + tvp->tv_usec/1000) : -1);
+    // 调用epoll_wait函数，等待时间为最近达到时间时间的时间计算而来
+    retval = epoll_wait(state->epfd, state->events, eventLoop->setsize,
+                        tvp ? (tvp->tv_sec * 1000 + tvp->tv_usec / 1000) : -1);
+
+    // 至少有一个事件就绪
     if (retval > 0) {
         int j;
 
         numevents = retval;
         for (j = 0; j < numevents; j++) {
             int mask = 0;
-            struct epoll_event *e = state->events+j;
+            struct epoll_event *e = state->events + j;
 
             if (e->events & EPOLLIN) mask |= AE_READABLE;
             if (e->events & EPOLLOUT) mask |= AE_WRITABLE;

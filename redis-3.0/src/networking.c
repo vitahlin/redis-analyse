@@ -62,7 +62,6 @@ int listMatchObjects(void *a, void *b) {
 }
 
 redisClient *createClient(int fd) {
-    printf("create client fd=%d\n", fd);
     redisClient *c = zmalloc(sizeof(redisClient));
 
     /* passing -1 as fd it is possible to create a non connected client.
@@ -591,6 +590,7 @@ void copyClientOutputBuffer(redisClient *dst, redisClient *src) {
 
 #define MAX_ACCEPTS_PER_CALL 1000
 static void acceptCommonHandler(int fd, int flags) {
+    printf("acceptCommandHandler run\n");
     // 创建一个新的客户端，代表着连接到redis的客户端，每个客户端有各自的输入缓冲区和输出缓存区
     redisClient *c;
     if ((c = createClient(fd)) == NULL) {
@@ -627,7 +627,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     REDIS_NOTUSED(privdata);
 
     while(max--) {
-        // 底层调用socket的accept方法
+        // 对连接服务器的监听套接字客户端进行应答，底层调用socket的accept方法
         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
@@ -637,7 +637,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
         }
         redisLog(REDIS_VERBOSE, "Accepted %s:%d", cip, cport);
 
-        // 建立socket后的处理
+        // 注册命令请求处理器
         acceptCommonHandler(cfd, 0);
     }
 }
@@ -1154,6 +1154,7 @@ void processInputBuffer(redisClient *c) {
         if (c->flags & REDIS_CLOSE_AFTER_REPLY) return;
 
         /* Determine request type when unknown. */
+        // 判断类型
         if (!c->reqtype) {
             if (c->querybuf[0] == '*') {
                 c->reqtype = REDIS_REQ_MULTIBULK;
@@ -1197,9 +1198,8 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
      * processMultiBulkBuffer() can avoid copying buffers to create the
      * Redis Object representing the argument. */
     if (c->reqtype == REDIS_REQ_MULTIBULK && c->multibulklen && c->bulklen != -1
-        && c->bulklen >= REDIS_MBULK_BIG_ARG)
-    {
-        int remaining = (unsigned)(c->bulklen+2)-sdslen(c->querybuf);
+        && c->bulklen >= REDIS_MBULK_BIG_ARG) {
+        int remaining = (unsigned) (c->bulklen + 2) - sdslen(c->querybuf);
 
         if (remaining < readlen) readlen = remaining;
     }
@@ -1207,12 +1207,14 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     qblen = sdslen(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
     c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
-    nread = read(fd, c->querybuf+qblen, readlen);
+
+    // 读入内容到查询缓存
+    nread = read(fd, c->querybuf + qblen, readlen);
     if (nread == -1) {
         if (errno == EAGAIN) {
             nread = 0;
         } else {
-            redisLog(REDIS_VERBOSE, "Reading from client: %s",strerror(errno));
+            redisLog(REDIS_VERBOSE, "Reading from client: %s", strerror(errno));
             freeClient(c);
             return;
         }
@@ -1231,15 +1233,18 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
         return;
     }
     if (sdslen(c->querybuf) > server.client_max_querybuf_len) {
-        sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();
+        sds ci = catClientInfoString(sdsempty(), c), bytes = sdsempty();
 
-        bytes = sdscatrepr(bytes,c->querybuf,64);
-        redisLog(REDIS_WARNING,"Closing client that reached max query buffer length: %s (qbuf initial bytes: %s)", ci, bytes);
+        bytes = sdscatrepr(bytes, c->querybuf, 64);
+        redisLog(REDIS_WARNING, "Closing client that reached max query buffer length: %s (qbuf initial bytes: %s)", ci,
+                 bytes);
         sdsfree(ci);
         sdsfree(bytes);
         freeClient(c);
         return;
     }
+
+    printf("receive buff=%s\n", c->querybuf);
     processInputBuffer(c);
     server.current_client = NULL;
 }
