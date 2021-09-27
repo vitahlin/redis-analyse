@@ -85,6 +85,8 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
 
     ee.events = 0;
     mask |= eventLoop->events[fd].mask; /* Merge old events */
+
+    // EPOLLIN表示对应的文件描述符可以读（包括对端socket正常关闭）
     if (mask & AE_READABLE) ee.events |= EPOLLIN;
     if (mask & AE_WRITABLE) ee.events |= EPOLLOUT;
     ee.data.u64 = 0; /* avoid valgrind warning */

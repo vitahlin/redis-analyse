@@ -1806,8 +1806,8 @@ void initServer(void) {
     adjustOpenFilesLimit();
 
     /**
-     * maxclients代表用户配置的最大连接数
-     * REDIS_EVENTLOOP_FDSET_INCR大小为128，给redis预留一些安全空间
+     * maxclients 代表用户配置的最大连接数
+     * REDIS_EVENTLOOP_FDSET_INCR 大小为128，给redis预留一些安全空间
      * 创建事件相关结构体
      */
     server.el = aeCreateEventLoop(server.maxclients + REDIS_EVENTLOOP_FDSET_INCR);
@@ -2088,19 +2088,20 @@ void call(redisClient *c, int flags) {
      * not generated from reading an AOF. */
     if (listLength(server.monitors) &&
         !server.loading &&
-        !(c->cmd->flags & (REDIS_CMD_SKIP_MONITOR|REDIS_CMD_ADMIN)))
-    {
-        replicationFeedMonitors(c,server.monitors,c->db->id,c->argv,c->argc);
+        !(c->cmd->flags & (REDIS_CMD_SKIP_MONITOR | REDIS_CMD_ADMIN))) {
+        replicationFeedMonitors(c, server.monitors, c->db->id, c->argv, c->argc);
     }
 
     /* Call the command. */
-    c->flags &= ~(REDIS_FORCE_AOF|REDIS_FORCE_REPL);
+    c->flags &= ~(REDIS_FORCE_AOF | REDIS_FORCE_REPL);
     redisOpArrayInit(&server.also_propagate);
     dirty = server.dirty;
     start = ustime();
+
+    // 调用了当前执行命令的命令执行函数
     c->cmd->proc(c);
-    duration = ustime()-start;
-    dirty = server.dirty-dirty;
+    duration = ustime() - start;
+    dirty = server.dirty - dirty;
     if (dirty < 0) dirty = 0;
 
     /* When EVAL is called loading the AOF we don't want commands called

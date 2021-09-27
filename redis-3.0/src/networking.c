@@ -62,6 +62,7 @@ int listMatchObjects(void *a, void *b) {
 }
 
 redisClient *createClient(int fd) {
+    // 为这个连接创建一个client，用于存储读取的操作命令以及缓存输出的结果
     redisClient *c = zmalloc(sizeof(redisClient));
 
     /* passing -1 as fd it is possible to create a non connected client.
@@ -69,15 +70,16 @@ redisClient *createClient(int fd) {
      * in the context of a client. When commands are executed in other
      * contexts (for instance a Lua script) we need a non connected client. */
     if (fd != -1) {
+        // 将文件描述符设置为noblocking
         anetNonBlock(NULL, fd);
+
+        // 设置TCP_NODELAY，关闭Nagle算法
         anetEnableTcpNoDelay(NULL, fd);
         if (server.tcpkeepalive)
             anetKeepAlive(NULL, fd, server.tcpkeepalive);
 
         /**
-         * 向eventloop中注册了readQueryFromClient
-         * readQueryFromClient 的作用就是从 client 中读取客户端的查询缓冲区内容
-         * 绑定读事件到 loop，开始接收命令请求
+         * 注册客户端套接字事件，等待接收客户端的命令
          */
         if (aeCreateFileEvent(server.el, fd, AE_READABLE,
                               readQueryFromClient, c) == AE_ERR) {
@@ -177,6 +179,7 @@ int prepareClientToWrite(redisClient *c) {
          (c->replstate == REDIS_REPL_ONLINE && !c->repl_put_online_on_ack)))
     {
         /* Try to install the write handler. */
+        // 注册写事件
         if (aeCreateFileEvent(server.el, c->fd, AE_WRITABLE,
                 sendReplyToClient, c) == AE_ERR)
         {
@@ -325,7 +328,13 @@ void _addReplyStringToList(redisClient *c, char *s, size_t len) {
  * The following functions are the ones that commands implementations will call.
  * -------------------------------------------------------------------------- */
 
+/**
+ * 结果需要返回给客户端调用这个函数
+ * @param c
+ * @param obj
+ */
 void addReply(redisClient *c, robj *obj) {
+    // 先注册一个写事件
     if (prepareClientToWrite(c) != REDIS_OK) return;
 
     /* This is an important place where we can avoid copy-on-write
@@ -588,6 +597,7 @@ void copyClientOutputBuffer(redisClient *dst, redisClient *src) {
     dst->reply_bytes = src->reply_bytes;
 }
 
+// 常量，对于listenfd一次可读事件，可以接收最多1000个客户端
 #define MAX_ACCEPTS_PER_CALL 1000
 static void acceptCommonHandler(int fd, int flags) {
     printf("acceptCommandHandler run\n");
@@ -604,11 +614,14 @@ static void acceptCommonHandler(int fd, int flags) {
      * connection. Note that we create the client instead to check before
      * for this condition, since now the socket is already set in non-blocking
      * mode and we can send an error for free using the Kernel I/O */
+    /**
+     * 判断客户端数量是否超出事先定义的个数，如果是则向客户端回复一个错误消息，并且回收redisClient
+     */
     if (listLength(server.clients) > server.maxclients) {
         char *err = "-ERR max number of clients reached\r\n";
 
         /* That's a best effort error message, don't check write errors */
-        if (write(c->fd,err,strlen(err)) == -1) {
+        if (write(c->fd, err, strlen(err)) == -1) {
             /* Nothing to do, Just to avoid the warning... */
         }
         server.stat_rejected_conn++;
@@ -627,7 +640,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     REDIS_NOTUSED(privdata);
 
     while(max--) {
-        // 对连接服务器的监听套接字客户端进行应答，底层调用socket的accept方法
+        // 底层调用accept获取新连接的文件描述符
         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
@@ -900,9 +913,14 @@ void sendReplyToClient(aeEventLoop *el, int fd, void *privdata, int mask) {
          * We just rely on data / pings received for timeout detection. */
         if (!(c->flags & REDIS_MASTER)) c->lastinteraction = server.unixtime;
     }
+
+    /**
+     * 调用write函数将输出缓冲区的数据返回给客户杜u安，然后将这个客户端写事件删除。
+     * 因为已经没有数据可写，但是读事件还在，等待客户端下一次输入命令
+     */
     if (c->bufpos == 0 && listLength(c->reply) == 0) {
         c->sentlen = 0;
-        aeDeleteFileEvent(server.el,c->fd,AE_WRITABLE);
+        aeDeleteFileEvent(server.el, c->fd, AE_WRITABLE);
 
         /* Close connection after entire reply has been sent. */
         if (c->flags & REDIS_CLOSE_AFTER_REPLY) freeClient(c);
