@@ -915,7 +915,7 @@ void sendReplyToClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     }
 
     /**
-     * 调用write函数将输出缓冲区的数据返回给客户杜u安，然后将这个客户端写事件删除。
+     * 调用write函数将输出缓冲区的数据返回给客户端，然后将这个客户端写事件删除。
      * 因为已经没有数据可写，但是读事件还在，等待客户端下一次输入命令
      */
     if (c->bufpos == 0 && listLength(c->reply) == 0) {
