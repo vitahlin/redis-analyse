@@ -40,3 +40,6 @@ CMakeFiles/
 *.a
 CMakeCache.txt
 *.cbp
+
+
+storage/
