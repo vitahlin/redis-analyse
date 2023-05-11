@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-project(redis5.0 VERSION 5.0)
+project(redis-5.0 VERSION 5.0)
 
 set(CMAKE_BUILD_TYPE "Debug")
 
