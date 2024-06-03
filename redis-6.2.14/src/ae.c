@@ -431,7 +431,14 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
              * after the readable. In such a case, we invert the calls.
              * This is useful when, for instance, we want to do things
              * in the beforeSleep() hook, like fsyncing a file to disk,
-             * before replying to a client. */
+             * before replying to a client.
+             * 通常情况下，首先执行可读文件再执行可写事件，这样的好处是一个查询在处理后立刻有响应
+             * 可以发送，可以在一次事件循环中处理完读取和写入。
+             *
+             * 如果设置了AE_BARRIER，表示应用程序不希望在读事件后立即触发写事件，这种情况下，
+             * 需要反转顺序，一般是用在某些钩子函数如beforeSleep中执行一些操作，比如将文件
+             * 同步到磁盘之后再发送响应
+             */
             int invert = fe->mask & AE_BARRIER;
 
             /* Note the "fe->mask & mask & ..." code: maybe an already

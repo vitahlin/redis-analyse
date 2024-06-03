@@ -3341,9 +3341,7 @@ void initServer(void) {
     /* Create the timer callback, this is our way to process many background
      * operations incrementally, like clients timeout, eviction of unaccessed
      * expired keys and so forth. */
-    /**
-     * 创建时间事件处理器，第二个参数为1，表示1秒后触发
-     */
+    /** 创建时间事件处理器，第二个参数为1，表示1秒后触发 */
     if (aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
         serverPanic("Can't create event loop timers.");
         exit(1);

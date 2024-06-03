@@ -1127,7 +1127,9 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
      *
      * Admission control will happen before a client is created and connAccept()
      * called, because we don't want to even start transport-level negotiation
-     * if rejected. */
+     * if rejected.
+     * 如果client数量加上Cluster数量超过限制，返回错误
+     */
     if (listLength(server.clients) + getClusterConnectionsCount()
         >= server.maxclients)
     {
@@ -1149,7 +1151,9 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
         return;
     }
 
-    /* Create connection and client */
+    /* Create connection and client
+     * 创建client结构体
+     */
     if ((c = createClient(conn)) == NULL) {
         serverLog(LL_WARNING,
             "Error registering fd event for the new client: %s (conn: %s)",
@@ -1197,8 +1201,9 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     UNUSED(mask);
     UNUSED(privdata);
 
+    // 每次事件循环最多接收MAX_ACCEPTS_PER_CALL个连接请求，防止进程被长时间阻塞
     while(max--) {
-        // 底层调用accept获取新的文件描述符
+        // 底层调用accept获取新的文件描述符，接受连接
         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
@@ -1208,7 +1213,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
         }
         anetCloexec(cfd);
         serverLog(LL_VERBOSE,"Accepted %s:%d", cip, cport);
-        // 注册命令请求连接器
+        // 注册命令请求连接器，创建connection结构体
         acceptCommonHandler(connCreateAcceptedSocket(cfd),0,cip);
     }
 }

@@ -128,21 +128,30 @@ static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int mask) {
     }
 }
 
+/**
+ * 接收两个参数
+ * eventLoop 事件循环结构的指针
+ */
 static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
     aeApiState *state = eventLoop->apidata;
+
+    // retval存储kevent的返回值，numevents计数处理的事件数
     int retval, numevents = 0;
 
     if (tvp != NULL) {
+        // 如果tvp不为NULL，转换为timespec结构，然后调用kevent函数，通过timespec传递超时参数
         struct timespec timeout;
         timeout.tv_sec = tvp->tv_sec;
         timeout.tv_nsec = tvp->tv_usec * 1000;
         retval = kevent(state->kqfd, NULL, 0, state->events, eventLoop->setsize,
                         &timeout);
     } else {
+        // tvp是NULL，不传递超时参数，kevent可以无限等待事件
         retval = kevent(state->kqfd, NULL, 0, state->events, eventLoop->setsize,
                         NULL);
     }
 
+    // retval大于0表示kevent返回的事件数大于0，开始处理这些事件
     if (retval > 0) {
         int j;
 
@@ -154,12 +163,15 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
          * reads and writes. So we store the event's mask we've got and merge
          * the same fd events later. */
         for (j = 0; j < retval; j++) {
+            // 获取事件对应的文件描述符
             struct kevent *e = state->events+j;
             int fd = e->ident;
             int mask = 0; 
 
+            // 根据事件的类型设置标记mask
             if (e->filter == EVFILT_READ) mask = AE_READABLE;
             else if (e->filter == EVFILT_WRITE) mask = AE_WRITABLE;
+
             addEventMask(state->eventsMask, fd, mask);
         }
 
@@ -172,6 +184,7 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
             int mask = getEventMask(state->eventsMask, fd);
 
             if (mask) {
+                // 添加到已经就绪的事件队列中
                 eventLoop->fired[numevents].fd = fd;
                 eventLoop->fired[numevents].mask = mask;
                 resetEventMask(state->eventsMask, fd);
