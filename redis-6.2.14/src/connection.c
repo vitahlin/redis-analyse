@@ -345,6 +345,10 @@ static int connSocketGetType(connection *conn) {
     return CONN_TYPE_SOCKET;
 }
 
+/**
+ * 结构体初始化
+ * CT_Socket：这是一个 ConnectionType 类型的变量实例。
+ */
 ConnectionType CT_Socket = {
     .ae_handler = connSocketEventHandler,
     .close = connSocketClose,

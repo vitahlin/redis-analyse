@@ -51,6 +51,12 @@ typedef enum {
 #define CONN_TYPE_SOCKET            1
 #define CONN_TYPE_TLS               2
 
+/*
+ * 定义了一个函数指针类型 ConnectionCallbackFunc。具体来说，它创建了一个新的类型名，
+ * 表示一个指向函数的指针，这个函数接受一个参数并且不返回值。
+ *
+ * (*ConnectionCallbackFunc)：表示这是一个指向函数的指针。ConnectionCallbackFunc 是这个指针类型的新名字。
+ */
 typedef void (*ConnectionCallbackFunc)(struct connection *conn);
 
 typedef struct ConnectionType {

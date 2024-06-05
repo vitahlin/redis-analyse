@@ -1193,10 +1193,12 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
  * @param mask
  */
 void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
+    // cport客户端端口号，cfd新的客户端连接符，max每次事件循环最多接受的连接数，防止服务器被长时间阻塞
     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
 
     // 客户端IP缓冲区
     char cip[NET_IP_STR_LEN];
+    // 标记未使用的参数，防止编译器警告
     UNUSED(el);
     UNUSED(mask);
     UNUSED(privdata);
