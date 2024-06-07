@@ -96,23 +96,34 @@ int anetBlock(char *err, int fd) {
 
 /* Enable the FD_CLOEXEC on the given fd to avoid fd leaks. 
  * This function should be invoked for fd's on specific places 
- * where fork + execve system calls are called. */
+ * where fork + execve system calls are called.
+ * 将文件描述符设置为“执行时关闭”（close-on-exec）状态。
+ * 这个状态意味着在执行exec系列函数（如execve）时，这个文件描述符会自动关闭。
+ * 确保文件描述符在执行新的程序时不会被子进程继承，从而避免文件描述符泄漏。
+ */
 int anetCloexec(int fd) {
     int r;
     int flags;
 
+    // 第一个do-while循环：获取文件描述符的标志
     do {
+        // 获取文件描述符的标志
         r = fcntl(fd, F_GETFD);
+        // 如果调用被信号中断则重试
     } while (r == -1 && errno == EINTR);
 
+    // 检查获取标志是否成功，以及FD_CLOEXEC标志是否已经设置
     if (r == -1 || (r & FD_CLOEXEC))
-        return r;
+        return r; // 如果获取标志失败或者FD_CLOEXEC已经设置，则直接返回
 
+    // 将FD_CLOEXEC标志加到文件描述符标志中
     flags = r | FD_CLOEXEC;
 
+    // 第二个do-while循环：设置文件描述符的标志
     do {
+        // 设置文件描述符标志
         r = fcntl(fd, F_SETFD, flags);
-    } while (r == -1 && errno == EINTR);
+    } while (r == -1 && errno == EINTR); // 如果调用被信号中断则重试
 
     return r;
 }

@@ -3039,7 +3039,7 @@ int createSocketAcceptHandler(socketFds *sfd, aeFileProc *accept_handler) {
     for (j = 0; j < sfd->count; j++) {
         if (aeCreateFileEvent(server.el, sfd->fd[j], AE_READABLE, accept_handler,NULL) == AE_ERR) {
             /* Rollback
-             *如果在某个文件描述符上创建事件失败，之前已经创建的事件需要删除以保持状态一致。
+             * 如果在某个文件描述符上创建事件失败，之前已经创建的事件需要删除以保持状态一致。
              * 通过反向循环删除已经创建的事件，确保系统不会因为部分成功而处于不一致状态。
              */
             for (j = j-1; j >= 0; j--) aeDeleteFileEvent(server.el, sfd->fd[j], AE_READABLE);
