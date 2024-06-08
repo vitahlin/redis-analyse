@@ -113,8 +113,11 @@ struct connection {
  *
  * connAccept() callers must always check the return value and on error (C_ERR)
  * a connClose() must be called.
+ *
+ * connAccept 函数是一个封装函数，它将连接对象 conn 和回调函数 accept_handler
+ * 传递给连接对象类型的 accept 方法，以执行实际的连接接受操作。通过这种方式，
+ * 代码实现了对不同连接类型的多态支持，不同类型的连接对象可以通过各自实现的 accept 方法来处理连接接受逻辑。
  */
-
 static inline int connAccept(connection *conn, ConnectionCallbackFunc accept_handler) {
     return conn->type->accept(conn, accept_handler);
 }

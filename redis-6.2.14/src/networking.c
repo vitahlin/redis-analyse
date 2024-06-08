@@ -1173,8 +1173,12 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
      * 2. Schedule a future call to clientAcceptHandler().
      *
      * Because of that, we must do nothing else afterwards.
+     *
+     * 这段代码用于处理客户端连接的接受过程，并在出现错误时进行相应的处理。
+     * 具体地，它尝试接受一个新的客户端连接，如果失败，则记录错误信息并清理资源。
      */
     if (connAccept(conn, clientAcceptHandler) == C_ERR) {
+        // 存储连接信息
         char conninfo[100];
         if (connGetState(conn) == CONN_STATE_ERROR)
             serverLog(LL_WARNING,

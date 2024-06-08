@@ -99,7 +99,12 @@ static void aeApiFree(aeEventLoop *eventLoop) {
     zfree(state);
 }
 
+/**
+ * 通过调用 kevent 系统调用，将指定文件描述符上的可读和/或可写事件注册到内核事件队列中，
+ * 以便在事件循环中进行处理。
+ */
 static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
+    // 事件循环的内部状态信息
     aeApiState *state = eventLoop->apidata;
     struct kevent ke;
 
