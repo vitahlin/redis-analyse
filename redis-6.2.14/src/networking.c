@@ -1176,6 +1176,8 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
      *
      * 这段代码用于处理客户端连接的接受过程，并在出现错误时进行相应的处理。
      * 具体地，它尝试接受一个新的客户端连接，如果失败，则记录错误信息并清理资源。
+     *
+     * 将传入的连接对象conn和事件处理回调函数clientAcceptHandler关联起来
      */
     if (connAccept(conn, clientAcceptHandler) == C_ERR) {
         // 存储连接信息
@@ -1190,7 +1192,7 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
 }
 
 /**
- * 处理客户端连接回调
+ * 处理新客户端连接的核心函数，负责从接收连接请求到初始化新连接的各个步骤。
  * @param el
  * @param fd
  * @param privdata
@@ -1219,7 +1221,15 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
         }
         anetCloexec(cfd);
         serverLog(LL_VERBOSE,"Accepted %s:%d", cip, cport);
-        // 注册命令请求连接器，创建connection结构体
+        /**
+         * 处理新接受的客户端连接的核心部分
+         * connCreateAcceptedSocket用于创建一个新的连接对象，接收一个新的客户端文件描述符cfd，
+         * 并返回一个新的连接对象，这个连接对象封装了与该客户端连接相关的所有状态信息。
+         *
+         * acceptCommonHandler是一个处理新连接的通用函数，主要职责是完成对新连接的初始化和注册。
+         * 1.初始化客户端结构：创建一个新的客户端结构，关联到新的连接对象；
+         * 2.注册事件处理器。
+         */
         acceptCommonHandler(connCreateAcceptedSocket(cfd),0,cip);
     }
 }

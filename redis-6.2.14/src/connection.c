@@ -201,6 +201,7 @@ static int connSocketAccept(connection *conn, ConnectionCallbackFunc accept_hand
     if (conn->state != CONN_STATE_ACCEPTING) return C_ERR;
     conn->state = CONN_STATE_CONNECTED;
 
+    // 增加连接对象的引用技术，确保在回调过程中不会被错误释放
     connIncrRefs(conn);
     if (!callHandler(conn, accept_handler)) ret = C_ERR;
     connDecrRefs(conn);
@@ -234,14 +235,24 @@ static int connSocketSetWriteHandler(connection *conn, ConnectionCallbackFunc fu
 
 /* Register a read handler, to be called when the connection is readable.
  * If NULL, the existing handler is removed.
+ * 处理了如何将连接的读事件处理器注册到事件循环中
  */
 static int connSocketSetReadHandler(connection *conn, ConnectionCallbackFunc func) {
+    // 如果传入的处理器与当前的处理器相同，直接返回OK
     if (func == conn->read_handler) return C_OK;
 
+    // 更新连接的读事件处理器
     conn->read_handler = func;
+
+    // 如果新的处理器为空，删除读事件
     if (!conn->read_handler)
+        // aeDeleteFileEvent 会将文件描述符 conn->fd 从事件循环 server.el 中移除，不再监视该文件描述符的可读事件。
         aeDeleteFileEvent(server.el,conn->fd,AE_READABLE);
     else
+        /*
+         * 如果新的处理器不为空，创建读事件
+         * 会将文件描述符 conn->fd 添加到事件循环中，并指定当文件描述符变为可读时调用 conn->type->ae_handler 处理读事件。
+         */
         if (aeCreateFileEvent(server.el,conn->fd,
                     AE_READABLE,conn->type->ae_handler,conn) == AE_ERR) return C_ERR;
     return C_OK;
