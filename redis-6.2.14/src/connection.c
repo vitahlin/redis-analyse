@@ -128,7 +128,9 @@ int connHasReadHandler(connection *conn) {
     return conn->read_handler != NULL;
 }
 
-/* Associate a private data pointer with the connection */
+/* Associate a private data pointer with the connection
+ * 在createClient中设置为客户端c
+ */
 void connSetPrivateData(connection *conn, void *data) {
     conn->private_data = data;
 }
@@ -147,13 +149,18 @@ void *connGetPrivateData(connection *conn) {
 /* Close the connection and free resources. */
 static void connSocketClose(connection *conn) {
     if (conn->fd != -1) {
+        // 取消关注可读写事件
         aeDeleteFileEvent(server.el,conn->fd, AE_READABLE | AE_WRITABLE);
+        // 关闭socket
         close(conn->fd);
         conn->fd = -1;
     }
 
     /* If called from within a handler, schedule the close but
      * keep the connection until the handler returns.
+     * 通过引用计数来控制conn的生命周期
+     * 此时，尽管要关闭conn，但是引用计数不是0
+     * 说明处于某个回调函数中，等该回调函数返回后，这个客户端就关闭
      */
     if (connHasRefs(conn)) {
         conn->flags |= CONN_FLAG_CLOSE_SCHEDULED;
@@ -163,8 +170,11 @@ static void connSocketClose(connection *conn) {
     zfree(conn);
 }
 
+// 函数上层被connWrite调用，用户无法直接调用connSocketWrite，只能通过conn对象来调用
 static int connSocketWrite(connection *conn, const void *data, size_t data_len) {
     int ret = write(conn->fd, data, data_len);
+
+    // ret ==-1 && errno ==EAGAIN，在非阻塞IO是正常下的，不是错误
     if (ret < 0 && errno != EAGAIN) {
         conn->last_errno = errno;
 
@@ -216,18 +226,27 @@ static int connSocketAccept(connection *conn, ConnectionCallbackFunc accept_hand
  * CONN_FLAG_WRITE_BARRIER set. This will ensure that the write handler is
  * always called before and not after the read handler in a single event
  * loop.
+ *
+ * 在epoll_wait上注册可写事件，并设置可写事件的回调函数为ae_handler，真正执行写操作的还是func
+ * - 设置连接对象conn的写回调函数 conn->write_handler 为 func，再注册写事件
+ * - 如果设置的回调函数 func为NULL，则取消注册可写事件
+ *
+ * 注意：这里注册的可写事件的回调函数是ae_handler，是因为在ae_handler中，综合处理了可读、可写事件。
  */
 static int connSocketSetWriteHandler(connection *conn, ConnectionCallbackFunc func, int barrier) {
     if (func == conn->write_handler) return C_OK;
 
+    // 设置新的可写事件处理函数
     conn->write_handler = func;
     if (barrier)
         conn->flags |= CONN_FLAG_WRITE_BARRIER;
     else
         conn->flags &= ~CONN_FLAG_WRITE_BARRIER;
+    // 如果没有设置写事件处理函数，则取消关注写事件
     if (!conn->write_handler)
         aeDeleteFileEvent(server.el,conn->fd,AE_WRITABLE);
     else
+        // 关注可写事件
         if (aeCreateFileEvent(server.el,conn->fd,AE_WRITABLE,
                     conn->type->ae_handler,conn) == AE_ERR) return C_ERR;
     return C_OK;
@@ -250,6 +269,8 @@ static int connSocketSetReadHandler(connection *conn, ConnectionCallbackFunc fun
         aeDeleteFileEvent(server.el,conn->fd,AE_READABLE);
     else
         /*
+         * 创建一个fileEvent事件，回调函数就是readQueryFromClient
+         *
          * 如果新的处理器不为空，创建读事件
          * 会将文件描述符 conn->fd 添加到事件循环中，并指定当文件描述符变为可读时调用 conn->type->ae_handler 处理读事件。
          */
@@ -262,12 +283,14 @@ static const char *connSocketGetLastError(connection *conn) {
     return strerror(conn->last_errno);
 }
 
+// 处理epollfd上可读写事件
 static void connSocketEventHandler(struct aeEventLoop *el, int fd, void *clientData, int mask)
 {
     UNUSED(el);
     UNUSED(fd);
     connection *conn = clientData;
 
+    // 针对发起连接对象
     if (conn->state == CONN_STATE_CONNECTING &&
             (mask & AE_WRITABLE) && conn->conn_handler) {
 
@@ -279,8 +302,10 @@ static void connSocketEventHandler(struct aeEventLoop *el, int fd, void *clientD
             conn->state = CONN_STATE_CONNECTED;
         }
 
+        // 没有设置可写事件的处理函数，直接取消可写事件
         if (!conn->write_handler) aeDeleteFileEvent(server.el,conn->fd,AE_WRITABLE);
 
+        // 处理新连接到来
         if (!callHandler(conn, conn->conn_handler)) return;
         conn->conn_handler = NULL;
     }
@@ -432,6 +457,7 @@ int connRecvTimeout(connection *conn, long long ms) {
     return anetRecvTimeout(NULL, conn->fd, ms);
 }
 
+// 对应的获取状态的方法
 int connGetState(connection *conn) {
     return conn->state;
 }

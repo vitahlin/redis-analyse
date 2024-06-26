@@ -128,6 +128,7 @@ client *createClient(connection *conn) {
         connEnableTcpNoDelay(conn);
         if (server.tcpkeepalive)
             connKeepAlive(conn,server.tcpkeepalive);
+        // 注册readQueryFromClient，当connection读的时候回调时调用
         connSetReadHandler(conn, readQueryFromClient);
         connSetPrivateData(conn, c);
     }

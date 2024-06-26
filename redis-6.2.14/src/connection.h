@@ -38,11 +38,11 @@ typedef struct connection connection;
 
 typedef enum {
     CONN_STATE_NONE = 0,
-    CONN_STATE_CONNECTING,
-    CONN_STATE_ACCEPTING,
-    CONN_STATE_CONNECTED,
-    CONN_STATE_CLOSED,
-    CONN_STATE_ERROR
+    CONN_STATE_CONNECTING, // connecting，发起connect连接时
+    CONN_STATE_ACCEPTING, // accepting，创建客户端时初始状态，即accept之前的状态
+    CONN_STATE_CONNECTED, // connected 成功accept之后的状态
+    CONN_STATE_CLOSED, // closed 关闭的状态
+    CONN_STATE_ERROR // 出错了
 } ConnectionState;
 
 #define CONN_FLAG_CLOSE_SCHEDULED   (1<<0)      /* Closed scheduled by a handler */
@@ -59,17 +59,26 @@ typedef enum {
  */
 typedef void (*ConnectionCallbackFunc)(struct connection *conn);
 
+/**
+ * 按Java中的概念来理解，connection有个ConnectionType的属性，这里是一堆接口
+ */
 typedef struct ConnectionType {
+    // 读写
     void (*ae_handler)(struct aeEventLoop *el, int fd, void *clientData, int mask);
+    // 处理连接清奇
     int (*connect)(struct connection *conn, const char *addr, int port, const char *source_addr, ConnectionCallbackFunc connect_handler);
+    // 处理读写、关闭和accept
     int (*write)(struct connection *conn, const void *data, size_t data_len);
     int (*read)(struct connection *conn, void *buf, size_t buf_len);
     void (*close)(struct connection *conn);
     int (*accept)(struct connection *conn, ConnectionCallbackFunc accept_handler);
+    // set get
     int (*set_write_handler)(struct connection *conn, ConnectionCallbackFunc handler, int barrier);
     int (*set_read_handler)(struct connection *conn, ConnectionCallbackFunc handler);
     const char *(*get_last_error)(struct connection *conn);
     int (*blocking_connect)(struct connection *conn, const char *addr, int port, long long timeout);
+
+    // 异步读写
     ssize_t (*sync_write)(struct connection *conn, char *ptr, ssize_t size, long long timeout);
     ssize_t (*sync_read)(struct connection *conn, char *ptr, ssize_t size, long long timeout);
     ssize_t (*sync_readline)(struct connection *conn, char *ptr, ssize_t size, long long timeout);
@@ -77,16 +86,20 @@ typedef struct ConnectionType {
 } ConnectionType;
 
 struct connection {
-    // 用于操作连接通道的函数集
+    // 操作connection的函数指针
     ConnectionType *type;
-    // 连接状态定义
+    // 是一个枚举，表示连接的状态
     ConnectionState state;
+    // CONN_FLAG_CLOSE_SCHEDULED 或者 CONN_FLAG_WRITE_BARRIER
     short int flags;
+    // 引用计数，控制着这个连接对象生命周期
     short int refs;
-    // 该连接的最新错误信息
+    // 最近一次的错误信息
     int last_errno;
-    // 存放附加数据
+    // 保存的是这个连接对应的客户端client
     void *private_data;
+
+    // 三个回调函数都是由函数指针集合ConnectionType来设置
     // 连接操作的回调函数
     ConnectionCallbackFunc conn_handler;
     // 写入操作的回调函数
@@ -152,6 +165,7 @@ static inline int connBlockingConnect(connection *conn, const char *addr, int po
  *
  * The caller should NOT rely on errno. Testing for an EAGAIN-like condition, use
  * connGetState() to see if the connection state is still CONN_STATE_CONNECTED.
+ * 底层调用了connSocketWrite
  */
 static inline int connWrite(connection *conn, const void *data, size_t data_len) {
     return conn->type->write(conn, data, data_len);
