@@ -1109,6 +1109,8 @@ void clientAcceptHandler(connection *conn) {
 }
 
 #define MAX_ACCEPTS_PER_CALL 1000
+
+// 查看accept所得的客户端是否合理，满足各个条件，最终创建客户端
 static void acceptCommonHandler(connection *conn, int flags, char *ip) {
     // 创建一个新的客户端，代表着连接到redis的客户端，每个客户端有自己的输入/输出缓冲区
     client *c;
@@ -1129,7 +1131,7 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
      * Admission control will happen before a client is created and connAccept()
      * called, because we don't want to even start transport-level negotiation
      * if rejected.
-     * 如果client数量加上Cluster数量超过限制，返回错误
+     * 如果客户端连接请求超过限制，则直接关闭这个客户端
      */
     if (listLength(server.clients) + getClusterConnectionsCount()
         >= server.maxclients)
@@ -1143,19 +1145,22 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
 
         /* That's a best effort error message, don't check write errors.
          * Note that for TLS connections, no handshake was done yet so nothing
-         * is written and the connection will just drop. */
+         * is written and the connection will just drop.
+         * 发送给客户端错误信息
+         */
         if (connWrite(conn,err,strlen(err)) == -1) {
             /* Nothing to do, Just to avoid the warning... */
         }
-        server.stat_rejected_conn++;
-        connClose(conn);
+        server.stat_rejected_conn++; // 用于调试信息
+        connClose(conn); // 关闭客户端
         return;
     }
 
     /* Create connection and client
-     * 创建client结构体
+     * 创建客户端
      */
     if ((c = createClient(conn)) == NULL) {
+        // 创建失败，内存不足，则应该直接关闭这次行为
         serverLog(LL_WARNING,
             "Error registering fd event for the new client: %s (conn: %s)",
             connGetLastError(conn),
@@ -1178,6 +1183,8 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
      * 这段代码用于处理客户端连接的接受过程，并在出现错误时进行相应的处理。
      * 具体地，它尝试接受一个新的客户端连接，如果失败，则记录错误信息并清理资源。
      *
+     * connAccept主要是调用clientAcceptHandler对获得的客户端状态进行判断
+     *
      * 将传入的连接对象conn和事件处理回调函数clientAcceptHandler关联起来
      */
     if (connAccept(conn, clientAcceptHandler) == C_ERR) {
@@ -1187,13 +1194,15 @@ static void acceptCommonHandler(connection *conn, int flags, char *ip) {
             serverLog(LL_WARNING,
                     "Error accepting a client connection: %s (conn: %s)",
                     connGetLastError(conn), connGetInfo(conn, conninfo, sizeof(conninfo)));
-        freeClient(connGetPrivateData(conn));
+        freeClient(connGetPrivateData(conn)); // 同步关闭
         return;
     }
 }
 
 /**
- * 处理新客户端连接的核心函数，负责从接收连接请求到初始化新连接的各个步骤。
+ * 处理新客户端连接的核心函数，即监听文件描述符server.ipfd[j]的处理可读事件的回调函数，
+ * 负责从接收连接请求到初始化新连接的各个步骤。
+ * 这个函数在 server.c函数中设置
  * @param el
  * @param fd
  * @param privdata
@@ -1203,14 +1212,17 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     // cport客户端端口号，cfd新的客户端连接符，max每次事件循环最多接受的连接数，防止服务器被长时间阻塞
     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
 
-    // 客户端IP缓冲区
+    // 客户端IP
     char cip[NET_IP_STR_LEN];
     // 标记未使用的参数，防止编译器警告
     UNUSED(el);
     UNUSED(mask);
     UNUSED(privdata);
 
-    // 每次事件循环最多接收MAX_ACCEPTS_PER_CALL个连接请求，防止进程被长时间阻塞
+    /*
+     * 每次事件循环最多接收MAX_ACCEPTS_PER_CALL个连接请求
+     * 为了防止短时间内过多的客户端连接请求，造成阻塞
+     */
     while(max--) {
         // 底层调用accept获取新的文件描述符，接受连接
         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);

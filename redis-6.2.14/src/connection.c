@@ -91,6 +91,10 @@ connection *connCreateSocket() {
  * Callers should use connGetState() and verify the created connection
  * is not in an error state (which is not possible for a socket connection,
  * but could but possible with other protocols).
+ *
+ * 主要是创建客户端连接对象conn，此外
+ * - 设置conn->fd为客户端cfd
+ * - 将conn对象的状态初始化为CONN_STATE_ACCEPTING
  */
 connection *connCreateAcceptedSocket(int fd) {
     connection *conn = connCreateSocket();
