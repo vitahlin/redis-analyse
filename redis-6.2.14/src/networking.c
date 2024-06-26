@@ -116,17 +116,27 @@ int authRequired(client *c) {
     return auth_required;
 }
 
+/**
+ * 创建客户端
+ * 1. 将客户端cfd设置为非阻塞IO模式
+ * 2. 设置客户端的TCP参数，比如cfd上开启nagle算法
+ * 3. 开启心跳检测，改变了默认值
+ * 4. 注册可读事件
+ * 5. client其他参数的初始化
+ */
 client *createClient(connection *conn) {
     client *c = zmalloc(sizeof(client));
 
     /* passing NULL as conn it is possible to create a non connected client.
      * This is useful since all the commands needs to be executed
      * in the context of a client. When commands are executed in other
-     * contexts (for instance a Lua script) we need a non connected client. */
+     * contexts (for instance a Lua script) we need a non connected client.
+     * Lua脚本环境下，conn是null
+     */
     if (conn) {
-        connNonBlock(conn);
-        connEnableTcpNoDelay(conn);
-        if (server.tcpkeepalive)
+        connNonBlock(conn); // 设置客户端为非阻塞
+        connEnableTcpNoDelay(conn); // 开启nagle
+        if (server.tcpkeepalive) // 心跳检测
             connKeepAlive(conn,server.tcpkeepalive);
         // 注册readQueryFromClient，当connection读的时候回调时调用
         connSetReadHandler(conn, readQueryFromClient);
