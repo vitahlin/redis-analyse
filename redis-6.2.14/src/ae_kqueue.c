@@ -35,11 +35,21 @@
 
 typedef struct aeApiState {
     int kqfd;
+
+    /**
+     * events 是一个指向 struct kevent 数组的指针。这个数组将包含多个 kevent 事件结构体，每个结构体都表示一个特定的事件。
+     * 通过这个字段，aeApiState 结构体能够管理多个事件的详细信息，能够同时监控多个事件源。
+     */
     struct kevent *events;
 
     /* Events mask for merge read and write event.
      * To reduce memory consumption, we use 2 bits to store the mask
      * of an event, so that 1 byte will store the mask of 4 events. */
+    /**
+     * 每个事件的掩码并没有使用标准的 1 字节（8 位），而是使用了 2 位来表示一个事件的状态。
+     * 由于每个事件掩码只使用 2 位，1 字节（8 位）就能够存储 4 个事件的掩码（每个事件 2 位，1 字节可以存储 8 / 2 = 4 个事件掩码）。
+     * 这种做法显著减少了内存的使用，因为不再需要为每个事件分配独立的字节，而是通过按位存储多个事件的状态来节省内存。
+     */
     char *eventsMask; 
 } aeApiState;
 
