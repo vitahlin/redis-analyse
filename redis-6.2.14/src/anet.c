@@ -86,6 +86,10 @@ int anetSetBlock(char *err, int fd, int non_block) {
     return ANET_OK;
 }
 
+/**
+ * 将文件描述符fd设为非阻塞模式，为什么要这么处理？
+ *
+ */
 int anetNonBlock(char *err, int fd) {
     return anetSetBlock(err,fd,1);
 }
@@ -100,6 +104,10 @@ int anetBlock(char *err, int fd) {
  * 将文件描述符设置为“执行时关闭”（close-on-exec）状态。
  * 这个状态意味着在执行exec系列函数（如execve）时，这个文件描述符会自动关闭。
  * 确保文件描述符在执行新的程序时不会被子进程继承，从而避免文件描述符泄漏。
+ *
+ * 在 Linux 或 Unix 系统编程中，FD_CLOEXEC（Close on Exec）是一种文件描述符（file descriptor, fd）标志，
+ * 它的作用是在执行 exec 族函数（如 execve()、execlp()）时自动关闭该文件描述符，
+ * 以防止它被子进程继承，从而避免文件描述符泄漏。
  */
 int anetCloexec(int fd) {
     int r;

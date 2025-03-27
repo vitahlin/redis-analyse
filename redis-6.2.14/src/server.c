@@ -3066,7 +3066,10 @@ int createSocketAcceptHandler(socketFds *sfd, aeFileProc *accept_handler) {
  * error, at least one of the server.bindaddr addresses was
  * impossible to bind, or no bind addresses were specified in the server
  * configuration but the function is not able to bind * for at least
- * one of the IPv4 or IPv6 protocols. */
+ * one of the IPv4 or IPv6 protocols.
+ * 解析配置文件，获取全部的绑定IP地址和端口
+ * 然后对各个地址进行bind操作和listen操作
+ */
 int listenToPort(int port, socketFds *sfd) {
     int j;
     char **bindaddr = server.bindaddr;
@@ -3081,7 +3084,12 @@ int listenToPort(int port, socketFds *sfd) {
 
     for (j = 0; j < bindaddr_count; j++) {
         char* addr = bindaddr[j];
-        // 检查地址是否是可选的，以-开头的地址为可选地址
+        /**
+         * 检查地址是否是可选的，以-开头的地址为可选地址
+         * 比如 bind -192.168.1.100 127.0.0.1
+         * 这里 -192.168.1.100 是一个可选地址，如果 Redis 绑定失败，它不会影响 Redis 启动，
+         * 而 127.0.0.1 是必需的，必须成功绑定。
+         */
         int optional = *addr == '-';
         // 如果地址是可选的，去掉-前缀
         if (optional) addr++;
