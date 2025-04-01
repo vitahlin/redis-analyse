@@ -266,6 +266,9 @@ int anetResolve(char *err, char *host, char *ipbuf, size_t ipbuf_len,
     return ANET_OK;
 }
 
+/**
+ * 设置 SO_REUSEADDR 选项，以允许端口快速复用
+ */
 static int anetSetReuseAddr(char *err, int fd) {
     int yes = 1;
     /* Make sure connection-intensive things like the redis benchmark
