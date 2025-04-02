@@ -273,6 +273,16 @@ static int anetSetReuseAddr(char *err, int fd) {
     int yes = 1;
     /* Make sure connection-intensive things like the redis benchmark
      * will be able to close/open sockets a zillion of times */
+    /*
+     * 允许频繁关闭和重新打开 socket，防止端口占用
+     *
+     * 当服务器关闭 socket 后，操作系统不会立即释放端口，而是会将其置于 TIME_WAIT 状态一段时间（通常是 1-4 分钟）。
+     * 在 TIME_WAIT 期间，如果你尝试重新启动服务器，bind() 可能会失败，报错：bind: Address already in use.
+     * 服务器需要等待 TIME_WAIT 过期后才能重启。
+     *
+     * 使用 SO_REUSEADDR 允许 socket 立即复用 处于 TIME_WAIT 状态的端口：允许端口立即重用，服务器可以快速重启。
+     * 提高并发能力，减少 TIME_WAIT 影响。
+     */
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
         anetSetError(err, "setsockopt SO_REUSEADDR: %s", strerror(errno));
         return ANET_ERR;
