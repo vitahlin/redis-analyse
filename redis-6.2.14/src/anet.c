@@ -456,16 +456,31 @@ static int _anetTcpServer(char *err, int port, char *bindaddr, int af, int backl
     memset(&hints,0,sizeof(hints));
     hints.ai_family = af;
     hints.ai_socktype = SOCK_STREAM;
+    /**
+     * 当使用 AI_PASSIVE 时，getaddrinfo() 会返回一个适合用于服务器端绑定的地址。
+     * 如果主机名 node 为 NULL，它会返回 INADDR_ANY 或 IN6ADDR_ANY_INIT（
+     * 这意味着可以绑定到所有可用的网络接口，例如，所有的 IPv4 地址或所有的 IPv6 地址）。
+     *
+     * 这对于创建服务器套接字非常有用，因为服务器通常需要监听来自任何客户端的连接。
+     */
     hints.ai_flags = AI_PASSIVE;    /* No effect if bindaddr != NULL */
+
+    /**
+     * "*" 代表所有 IPv4 地址，转换为 NULL 以监听 0.0.0.0。
+     * "::*" 代表所有 IPv6 地址，转换为 NULL 以监听 ::（即所有 IPv6 地址）。
+     */
     if (bindaddr && !strcmp("*", bindaddr))
         bindaddr = NULL;
     if (af == AF_INET6 && bindaddr && !strcmp("::*", bindaddr))
         bindaddr = NULL;
 
+    // 调用getaddrinfo函数来解析一个主机地址和端口的网络信息，将结果存储在servinfo中
     if ((rv = getaddrinfo(bindaddr,_port,&hints,&servinfo)) != 0) {
         anetSetError(err, "%s", gai_strerror(rv));
         return ANET_ERR;
     }
+
+    // 遍历 getaddrinfo 返回的 addrinfo 链表，尝试创建 socket，如果创建失败，继续尝试下一个地址。
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((s = socket(p->ai_family,p->ai_socktype,p->ai_protocol)) == -1)
             continue;
@@ -475,6 +490,7 @@ static int _anetTcpServer(char *err, int port, char *bindaddr, int af, int backl
         if (anetListen(err,s,p->ai_addr,p->ai_addrlen,backlog,0) == ANET_ERR) s = ANET_ERR;
         goto end;
     }
+    // 最终socket创建失败，报错
     if (p == NULL) {
         anetSetError(err, "unable to bind socket, errno: %d", errno);
         goto error;
