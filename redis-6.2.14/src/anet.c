@@ -436,6 +436,12 @@ static int anetListen(char *err, int s, struct sockaddr *sa, socklen_t len, int 
         return ANET_ERR;
     }
 
+    /**
+     * 如果 sa 是一个本地（Unix 域）套接字（AF_LOCAL/AF_UNIX），并且 perm 不为 0，则修改该套接字文件的权限。
+     * 修改 Unix 套接字文件的权限，确保特定用户/进程可以访问该套接字文件，避免权限问题，如：
+     *  默认 Unix 域套接字可能是 0600（仅创建者访问），但有些程序希望 多个用户 能访问，就需要 0666
+     *  例如 Docker、MySQL 等很多服务会创建 /var/run/docker.sock 这种 Unix 套接字，并设置 chmod 0666 让非 root 用户可以访问
+     */
     if (sa->sa_family == AF_LOCAL && perm)
         chmod(((struct sockaddr_un *) sa)->sun_path, perm);
 
