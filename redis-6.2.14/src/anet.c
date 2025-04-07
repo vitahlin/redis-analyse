@@ -58,27 +58,45 @@ static void anetSetError(char *err, const char *fmt, ...)
     va_end(ap);
 }
 
+/**
+ * 这段代码 anetSetBlock 用于设置 文件描述符（fd） 为 阻塞（blocking） 或 非阻塞（non-blocking） 模式。
+ * 为什么？
+ *  1.网络编程中，服务器 socket 默认是阻塞模式，但为了处理高并发，通常会改为非阻塞模式，这样 accept()、recv()、send() 等操作就不会阻塞。
+ *  2.事件驱动编程（如 epoll/kqueue）epoll/select 监听的文件描述符需要设置为非阻塞模式，否则 read() 或 write() 可能会卡住，影响事件循环。
+ */
 int anetSetBlock(char *err, int fd, int non_block) {
     int flags;
 
     /* Set the socket blocking (if non_block is zero) or non-blocking.
      * Note that fcntl(2) for F_GETFL and F_SETFL can't be
      * interrupted by a signal. */
+    /**
+     * 通过 fcntl(fd, F_GETFL) 获取 文件描述符 fd 的当前状态标志（flags）。
+     * 如果 fcntl 调用失败，说明 fd 无效或者发生错误，函数返回 ANET_ERR。
+     */
     if ((flags = fcntl(fd, F_GETFL)) == -1) {
         anetSetError(err, "fcntl(F_GETFL): %s", strerror(errno));
         return ANET_ERR;
     }
 
     /* Check if this flag has been set or unset, if so, 
-     * then there is no need to call fcntl to set/unset it again. */
+     * then there is no need to call fcntl to set/unset it again.
+     * 判断是否需要修改
+     * flags & O_NONBLOCK 用于检查当前是否已经是非阻塞模式：
+	•	如果结果为非零，说明 O_NONBLOCK 已经设置（即非阻塞）。
+	•	如果结果为零，说明 O_NONBLOCK 未设置（即阻塞）。
+     */
     if (!!(flags & O_NONBLOCK) == !!non_block)
         return ANET_OK;
 
     if (non_block)
+        // 设置非阻塞模式
         flags |= O_NONBLOCK;
     else
+        // 设置阻塞模式
         flags &= ~O_NONBLOCK;
 
+    // fcntl(fd, F_SETFL, flags) 用于更新文件描述符 fd 的状态。
     if (fcntl(fd, F_SETFL, flags) == -1) {
         anetSetError(err, "fcntl(F_SETFL,O_NONBLOCK): %s", strerror(errno));
         return ANET_ERR;
